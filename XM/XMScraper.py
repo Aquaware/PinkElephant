@@ -57,14 +57,14 @@ class XMScraper:
         server = MT5Bind(self.stock)
         data = server.scrapeRange(timeframe, t0, t1)
         if len(data) == 0:
-            return
+            return -1
         
         table = PriceTable(self.stock, timeframe)
         db = XMDb()
         ret = db.insert(table, data)
         if ret == False:
             print('DB Insert error1')
-            return False
+            return -1
         stored = db.fetchAllItem(table, 'time')
         times = stored['time']
         tbegin = times[0]
@@ -75,13 +75,13 @@ class XMScraper:
         ret = db.create(manage)
         if ret == False:
             print('Management DB create Error!')
-            return False
+            return -1
         ret = db.update(manage, [self.stock, timeframe, None, tend])
         if ret == False:
             print('Management DB update Error!')
-            return False
+            return -1
         
-        return True
+        return len(data)
         
     def rangeOfTime(self, timeframe):
         db = XMDb()
@@ -113,9 +113,10 @@ def update():
         db = XMScraper(stock)
         timeframes = setting.timeframeSymbols()
         for timeframe in timeframes:
-            db.update(timeframe)
+            n = db.update(timeframe)
             begin, end = db.rangeOfTime(timeframe)
-            print('Done...', stock, timeframe, begin, end)
+            print('['+stock + ' ' +  timeframe + ']', 'n=', n, begin, end)
+    print('Done')
             
 def test():
     stock = 'US30Cash'

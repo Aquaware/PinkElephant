@@ -35,7 +35,8 @@ def get225fPrices(theMonth):
     parser = Nikkei225fParser.Nikkei225fParser(chrome1.html())
     nikkei225fPrices = parser.parse()
     print('Nikkei225', theMonth)
-    print(nikkei225fPrices[0])
+    if len(nikkei225fPrices) > 0:
+        print(nikkei225fPrices[0])
     pass
 
 def getOptionPrices(theMonth):
@@ -97,6 +98,9 @@ def login():
     chrome2.linkByText('オプション注文')
     pass
 
+def GMONavigator():
+    scrape()
+    
 def scrape():
     scheduler = Scheduler.Scheduler(intervalSec, chrome1, login, close, getPrice)
     pass

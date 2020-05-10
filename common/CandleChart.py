@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
-import sys
-sys.path.append("./mpl_finance")
+#import sys
+#sys.path.append("./mpl_finance")
 import numpy as np
-import mpl_finance
+from mpl_finance import candlestick_ohlc
 import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
-import Market
 
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
@@ -52,7 +51,7 @@ class CandleChart:
             data.append([self.time[row], ohlc[row, 0], ohlc[row, 1], ohlc[row, 2], ohlc[row, 3]])
             
         w = self.length / 50000 * bar_width
-        mpl_finance.candlestick_ohlc(self.ax, data, width=w, colorup=self.color_up, colordown=self.color_down)
+        candlestick_ohlc(self.ax, data, width=w, colorup=self.color_up, colordown=self.color_down)
         self.ax.grid()
         self.ax.xaxis_date()
         self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M')) # '%m-%d %H:%M'))

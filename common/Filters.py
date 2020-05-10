@@ -107,19 +107,30 @@ def distribution(ohlcv, band_width):
         counts[i] = count
     return (steps, counts)
 
-def peakPrices(ohlc, band_width):
-    prices, counts = priceDistribution(ohlc, band_width)
-    if len(counts) == 0:
+def peakPrices(ohlc, delta, max_size, price_low, price_high):
+    prices, cnts = priceDistribution(ohlc, delta)
+    if len(cnts) == 0:
         return []
     
-    indices = argrelmax(counts)
+    center = []
+    counts = []
+    for price, c in zip(prices, cnts):
+        if price >= price_low and price <= price_high:
+            center.append(price)
+            counts.append(c)
+    
+    indices = argrelmax(np.array(counts))
     out = []
+    count = 0
     for indice in indices:
         for index in indice:
-            out.append(prices[index])
+            out.append(center[index])
+            count += 1
+            if count > max_size:
+                return out
     return out
 
-def priceDistribution(ohlc, band_width):  
+def priceDistribution(ohlc, delta):  
     o = ohlc[:, 0]
     h = ohlc[:, 1]
     l = ohlc[:, 2]
@@ -129,7 +140,6 @@ def priceDistribution(ohlc, band_width):
     except:
         return ([], [])
     
-    delta = d / band_width
     prices = np.arange(np.min([o, c]), np.max([o, c]) + 1, delta)
     size = len(prices) - 1
     counts = np.zeros(size)

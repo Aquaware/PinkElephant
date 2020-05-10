@@ -210,6 +210,33 @@ class Postgres(object):
             con.close()
             return None
         
+    def fetchItemsWhere(self, table, where_statement, asc_order_column):
+        con = self.connect()
+        if con is None:
+            return None
+        cursor = con.cursor()
+        try:
+            s = "SELECT * FROM " + table.name
+            if where_statement is not None:
+                if len(where_statement) > 0:
+                    s += " WHERE " + where_statement
+            if asc_order_column is not None:
+                s += " ORDER BY " + asc_order_column + " ASC"
+            cursor.execute(s)
+            values = cursor.fetchall()
+            con.commit()
+            con.close()
+            out = []
+            for value in values:
+                d = []
+                for i in range(1, len(value)):
+                    d.append(value[i])
+                out.append(d)
+            return out
+        except:
+            con.close()
+            return None        
+        
     def remove(self, table_name):
         s = 'DROP TABLE IF EXISTS ' + table_name
         self.sql(s)

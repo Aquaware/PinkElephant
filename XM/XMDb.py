@@ -6,6 +6,8 @@ import pytz
 from Postgres import Postgres, Structure
 import setting_xm as setting
 import account_db as account
+from CalendarTime import toNaive
+from TimeSeries import TimeSeries, OHLC, OHLCV
 
 TIME = 'time'
 OPEN = 'open'
@@ -81,6 +83,30 @@ class XMDb(Postgres):
             t1 = t.astimezone(pytz.timezone('Asia/Tokyo'))
             time.append(t1)
         return time
+    
+    
+    def priceRange(self, stock, timeframe, begin_time, end_time):
+        table = PriceTable(stock, timeframe)
+        if begin_time is not None:
+            where1 = TIME + " >= cast('" + str(begin_time) + "' as timestamp) "
+        else:
+            where1 = ''
+        if end_time is not None:
+            where2 = TIME + " <= cast('" + str(begin_time) + "' as timestamp) "
+        else:
+            where2 = ''
+        if begin_time is not None and end_time is not None:
+            where = where1 + ' AND ' + where2
+        else:
+            where = where1 + where2
+            
+        items = self.fetchItemsWhere(table, where, TIME)
+        time = []
+        values = []
+        for item in items:
+            time.append(toNaive(item[0]))
+            values.append(item[1:6])
+        return TimeSeries(time, values, OHLCV)
     
 # -----
    

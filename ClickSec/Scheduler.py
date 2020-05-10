@@ -37,7 +37,7 @@ class Scheduler():
     def isActive(self):
         now = today()
         t1 = datetime.datetime(now.year, now.month, now.day, 5, 31)
-        t2 = datetime.datetime(now.year, now.month, now.day, 8, 44)
+        t2 = datetime.datetime(now.year, now.month, now.day, 8, 00)
         if now >= t1 and now <= t2:
             return False
 

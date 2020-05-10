@@ -119,7 +119,7 @@ class MT5Bind:
         if not mt5.initialize():
             print("initialize() failed")
             mt5.shutdown()
-        print('Version: ', mt5.version())
+        #print('Version: ', mt5.version())
         pass    
     
     def close(self):

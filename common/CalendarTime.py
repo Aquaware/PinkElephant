@@ -22,6 +22,14 @@ def DTime(year, month, day, hour, minute):
     ja = timezone('Asia/Tokyo')
     return datetime.datetime(year, month, day, hour, minute, tzinfo=ja)
 
+def toNaive(time):
+    try:
+        ja = timezone('Asia/Tokyo')
+        t = ja.localize(time)
+        return t
+    except:
+        return time
+
 def Now():
     t = datetime.datetime.now()
     return t
