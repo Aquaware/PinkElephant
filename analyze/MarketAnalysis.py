@@ -12,9 +12,11 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from CandleChart import CandleChart
 from Graph import Graph
 import Filters
-from CalendarTime import DTime, DeltaDay, DeltaHour
+from CalendarTime import DTime, DeltaDay, DeltaHour, Today
 from XMDb import XMDb
 from TimeSeries import TimeSeries
+
+
 
 
 class MarketAnalysis:
@@ -25,15 +27,18 @@ class MarketAnalysis:
         self.time = time_series.time
         return
 
-    def plotAday(self, date):
-        end_date = date + DeltaDay(2)
+    def plotHours(self, date, hours):
+        end_date = date + DeltaHour(hours)
         time_series = self.time_series.timeRangeFilter(date, end_date)
+        
+        if time_series.length < 20:
+            return
 
         time = time_series.time
         ohlcv = time_series.values
         ohlcv_array = time_series.array
         ohlc_array = ohlcv_array[:, 0:4]
-        minmax = np.max(ohlc_array) - np.min(ohlc_array)
+        minval, maxval, maxmin, mean, stdev = self.statics(ohlc_array)
 
         # Runaway
         runway_flag, runways, runway_labels = Filters.detectRunway(ohlc_array, 3)
@@ -49,11 +54,11 @@ class MarketAnalysis:
             thrust_vector[index] = v
             integ = Filters.integration(thrust_vector)
                 
-        width = len(ohlcv) / 10
-        height = minmax / 50
+        width = len(ohlcv) / 20 / hours * 24
+        height = maxmin / 50
                 
         fig1 = plt.figure(figsize=(width, height))
-        ratio = 1 / minmax * 100 * (np.max(integ) - np.min(integ)) / 100
+        ratio = 1 / maxmin * 100 * (np.max(integ) - np.min(integ)) / 100
         if ratio < 0.2:
             ratio = 0.2
         grid = GridSpec(nrows=2, ncols=1, height_ratios=[1, ratio])
@@ -61,7 +66,9 @@ class MarketAnalysis:
         ax1 = fig1.add_subplot(grid1[:, :])
                 
         graph1 = CandleChart(ax1, time)
-        graph1.setTitle(date.strftime('%Y/%m/%d %A'), '', self.market)
+        title = date.strftime('%Y/%m/%d %A') + '  Range:' + "{:.1f}".format(maxmin) + ' Volatililty: ' + "{:.1f}".format(mean) + ' Stdev: ' + "{:.1f}".format(stdev)
+        #graph1.text(graph1.time[0], maxval - maxmin / 10, text, 'blue', 12)
+        graph1.setTitle(title, 'Time', self.market)
         graph1.plotOHLC(ohlc_array, bar_width = 0.4)
         prop1 = {'status': Filters.UP, 'label': runway_labels[0], 'marker':'^', 'color':'orange', 'alpha':0.4, 'size':70}
         prop2 = {'status': Filters.DOWN, 'label': runway_labels[1],'marker':'v', 'color':'green', 'alpha':0.4, 'size':70}
@@ -72,9 +79,13 @@ class MarketAnalysis:
         graph1.drawLegend(None, [prop1, prop2, prop3, prop4])
             
         passed = self.time_series.timeRangeFilter(end_date - DeltaDay(30) , end_date)
-        prices = Filters.peakPrices(passed.array[:,0:4], 10, 20, np.min(ohlc_array), np.max(ohlc_array))
-        graph1.hline(prices, ['green'], 1)      
-                
+        prices = Filters.peakPrices(passed.array[:,0:4], 20, 10, np.min(ohlc_array), np.max(ohlc_array))
+        graph1.hline(prices, ['green'], 1)
+        text = '  Range:' + "{:.1f}".format(maxmin) + ' Volatililty: ' + "{:.1f}".format(mean) + ' Stdev: ' + "{:.1f}".format(stdev)
+        #graph1.text(graph1.time[0], maxval - maxmin / 10, text, 'blue', 12)
+        
+        return
+    
         grid2 = GridSpecFromSubplotSpec(nrows=1, ncols=1, subplot_spec=grid[1, 0])
         ax2 = fig1.add_subplot(grid2[:, :])
                 
@@ -128,7 +139,17 @@ class MarketAnalysis:
                         graph1.markingWithTime(ohlc[:, 3], jump_down, 'cyan', 0.5, 100)
                         graph1.drawLegend(None, [['JumpUp(' + str(threshold) + ')', 'magenta', 'o', 5], ['JumpDown(' + str(threshold) + ')', 'cyan', 'o', 5]])
 
-
+    def statics(self, ohlc_array):
+        maxval = np.max(ohlc_array)
+        minval = np.min(ohlc_array)
+        maxmin = maxval - minval 
+        hl = []
+        rows = ohlc_array.shape[0]
+        for r in range(rows):
+            hl.append(ohlc_array[r, 1] - ohlc_array[r, 2])            
+        mean = np.mean(np.array(hl))
+        stdev = np.std(np.array(hl))
+        return (minval, maxval, maxmin, mean, stdev)
 
 def test():
     name = 'US30Cash'
@@ -139,12 +160,11 @@ def test():
     values = db.priceRange(name, timeframe, t1, None)
     
     
-    t = DTime(2020, 5, 7, 20, 0)
+    t = DTime(2020, 3, 1, 20, 0)
     ana = MarketAnalysis('DJI 5Min', values)
-    ana.plotAday(t)
-    #while (t < market.endTime()):
-    #    plotAday(market, t.year, t.month, t.day, session)
-    #    t += Market.DeltaDay(1)
+    while t < Today():
+        ana.plotHours(t, 12)
+        t += DeltaDay(1)
 
     
     

@@ -7,6 +7,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 from matplotlib.lines import Line2D
+from datetime import datetime 
 
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
@@ -31,13 +32,22 @@ def style(index):
     style = lineStyle(int(index / 10))
     return [c, style]
 
+
+def toNaive(time_list):
+    out = []
+    for time in time_list:
+        naive = datetime(time.year, time.month, time.day, time.hour, time.minute, time.second)
+        out.append(naive)
+    return out
+
 class CandleChart:
     
-    def __init__(self, ax, pytime):
+    def __init__(self, ax, aware_pytime):
         self.ax = ax
-        self.pytime = pytime
-        self.time = mdates.date2num(pytime)
-        self.length = len(pytime)
+        self.pytime = aware_pytime
+        time_list = toNaive(aware_pytime)
+        self.time = mdates.date2num(time_list)
+        self.length = len(aware_pytime)
         self.color_up = 'red'
         self.color_down = 'blue'
         self.width = 0.002

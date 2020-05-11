@@ -59,6 +59,13 @@ class XMScraper:
         if len(data) == 0:
             return -1
         
+        
+        if len(data) == 1:
+            return 0
+        
+        # remove last data
+        data = data[:len(data) - 1]
+        
         table = PriceTable(self.stock, timeframe)
         db = XMDb()
         ret = db.insert(table, data)

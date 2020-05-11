@@ -21,6 +21,9 @@ class TimeSeries:
             self.size = len(values[0])
         else:
             self.size = 0
+            
+            
+        self.array = None
         
         self.dic = {}
         if self.size != len(names):
