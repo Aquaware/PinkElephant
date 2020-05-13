@@ -10,6 +10,8 @@ from Postgres import Postgres, Structure
 import account_db as account
 from OptionPrice import OptionPrice
 from CalendarTime import Now, DeltaHour
+from CalendarTime import toNaive
+from TimeSeries import TimeSeries, OHLC, OHLCV
 
 TIME = 'time'
 KIND = 'kind'
@@ -112,7 +114,44 @@ class OptionDb(Postgres):
                 dic[column] = d
         return dic
     
-# -----
+    def qureyConditions(self, contract_month):
+        table = ManageTable()
+        items = self.fetchAll(table, CONTRACT_MONTH)
+        out = []
+        for item in items:
+            if item[0] == contract_month:
+                out.append(item[0:3])
+        return out
+    
+    def queryPrice(self, contract_month, contract_price, kind, begin_time, end_time):
+        table = PriceTable(tableName(contract_month))
+        where0 = CONTRACT_PRICE + " = '" + contract_price + "' AND " + KIND + " = '" + kind + "' "
+        if begin_time is not None:
+            where1 = TIME + " >= cast('" + str(begin_time) + "' as timestamp) "
+        else:
+            where1 = ''
+        if end_time is not None:
+            where2 = TIME + " <= cast('" + str(begin_time) + "' as timestamp) "
+        else:
+            where2 = ''
+            
+        if begin_time is None and end_time is None:
+            where = where0
+        elif begin_time is not None and end_time is not None:
+            where = where0 + ' AND ' + where1 + ' AND ' + where2
+        else:
+            where = where0 + ' AND ' + where1 + where2
+            
+        items = self.fetchItemsWhere(table, where, TIME)
+        time = []
+        values = []
+        for item in items:
+            time.append(toNaive(item[0]))
+            v = item[3]
+            values.append([v, v, v, v, item[4]])
+        return TimeSeries(time, values, OHLCV)
+        
+# ----
 
 def build():
     db = OptionDb()

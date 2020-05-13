@@ -75,16 +75,7 @@ class XMDb(Postgres):
             else:
                 dic[column] = d
         return dic
-    
-    def time2pyTime(self, time_list):
-        time = []
-        for t in time_list:
-            #t0 = datetime.datetime.strptime(tstr, TIME_FORMAT)
-            t1 = t.astimezone(pytz.timezone('Asia/Tokyo'))
-            time.append(t1)
-        return time
-    
-    
+        
     def priceRange(self, stock, timeframe, begin_time, end_time):
         table = PriceTable(stock, timeframe)
         if begin_time is not None:

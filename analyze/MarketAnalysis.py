@@ -3,6 +3,7 @@ import sys
 sys.path.append("../common")
 sys.path.append("../private")
 sys.path.append("../XM")
+sys.path.append("../ClickSec")
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,9 +16,7 @@ import Filters
 from CalendarTime import DTime, DeltaDay, DeltaHour, Today
 from XMDb import XMDb
 from TimeSeries import TimeSeries
-
-
-
+from OptionDb import OptionDb, PriceTable, ManageTable, tableName
 
 class MarketAnalysis:
     
@@ -151,7 +150,7 @@ class MarketAnalysis:
         stdev = np.std(np.array(hl))
         return (minval, maxval, maxmin, mean, stdev)
 
-def test():
+def xmAnalyze():
     name = 'US30Cash'
     timeframe = 'M5'
     db = XMDb()
@@ -166,7 +165,16 @@ def test():
         ana.plotHours(t, 12)
         t += DeltaDay(1)
 
+def optionAnalyze():
+    limit = '202006'
+    db = OptionDb()
+    conditions = db.qureyConditions(limit)
+    if db.isTable(tableName(limit)) == False:
+        return
     
+    for condition in conditions:
+        price = db.queryPrice(condition[0], condition[1], condition[2], None, None)
+        print(condition, price.length)        
     
 if __name__ == '__main__':
-    test()
+    optionAnalyze()
