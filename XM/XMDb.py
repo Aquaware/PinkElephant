@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
 import sys
-sys.path.append("../common")
+current_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.append(current_dir + '../common')
 
 import pytz
 from Postgres import Postgres, Structure
 import setting_xm as setting
 import account_db as account
-from CalendarTime import toNaive
+from CalendarTime import toNaive, toAware
 from TimeSeries import TimeSeries, OHLC, OHLCV
 
 TIME = 'time'
@@ -75,15 +77,21 @@ class XMDb(Postgres):
             else:
                 dic[column] = d
         return dic
+    
+    def dataTimeRange(self, stock, timeframe):
+        table = ManageTable()
+        where = {STOCK:stock, TIMEFRAME:timeframe} 
+        dic = self.fetchItem(table, where=where)
+        return (dic[TBEGIN], dic[TEND])
         
     def priceRange(self, stock, timeframe, begin_time, end_time):
         table = PriceTable(stock, timeframe)
         if begin_time is not None:
-            where1 = TIME + " >= cast('" + str(begin_time) + "' as timestamp) "
+            where1 = TIME + " >= cast('" + str(toAware(begin_time)) + "' as timestamp) "
         else:
             where1 = ''
         if end_time is not None:
-            where2 = TIME + " <= cast('" + str(begin_time) + "' as timestamp) "
+            where2 = TIME + " <= cast('" + str(toAware(end_time)) + "' as timestamp) "
         else:
             where2 = ''
         if begin_time is not None and end_time is not None:

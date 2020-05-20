@@ -29,6 +29,10 @@ def toNaive(time):
         return t
     except:
         return time
+    
+def toAware(naive_time):
+    t = datetime.datetime(naive_time.year, naive_time.month, naive_time.day, naive_time.hour, naive_time.minute, naive_time.second)
+    return t
 
 def Now():
     t = datetime.datetime.now()

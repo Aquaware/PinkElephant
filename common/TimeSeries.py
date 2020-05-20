@@ -62,7 +62,21 @@ class TimeSeries:
                 time.append(self.time[i])
                 values.append(self.values[i])
         return TimeSeries(time, values, names=self.names)
-        
+
+    def valueWithIndices(self, indices):
+        out = []
+        for value in self.values:
+            d = []
+            for index in indices:
+                d.append(value[index])
+            out.append(d)
+
+        names = []
+        for index in indices:
+            names.append(self.names[index])
+        return TimeSeries(self.time, out, names=names)
+
+
     def indexOfTime(self, time):
         for i in range(self.length):
             if self.time[i] >= time:
@@ -76,9 +90,12 @@ class TimeSeries:
             i_end = tmp
             
         if i_begin < 0:
-            return None
+            i_begin = 0
         if i_begin >= self.length:
             return None
+        
+        if i_end < 0:
+            i_end = self.length - 1
         
         time = []
         values = []
@@ -86,3 +103,47 @@ class TimeSeries:
                 time.append(self.time[i])
                 values.append(self.values[i])
         return TimeSeries(time, values)
+    
+    def indexRangeSizeFilter(self, i_begin, size):
+        if i_begin >= 0:
+            i_end = i_begin + size
+            if i_end > self.length -1:
+                i_end = self.length - 1
+        else:
+            i_end = self.length - 1
+            i_begin = i_end - size + 1
+            if i_begin < 0:
+                i_begin = 0
+        return self.indexRangeFilter(i_begin, i_end)
+       
+    def slice(self, begin, stop):
+        if begin is None:
+            begin = 0
+        if begin < 0:
+            begin = self.length + stop
+            
+        if stop is None:
+            stop = self.length
+            
+        if stop < 0:
+            stop = self.length + stop
+        
+        
+        if abs(begin) > self.length:
+            return None
+        
+        if abs(stop) > self.length:
+            return None
+        
+        time = []
+        values = []
+        if stop >= begin:
+            for i in range(begin, stop):
+                time.append(self.time[i])
+                values.append(self.values[i])
+        else:
+            for i in range(begin, stop, -1):
+                time.append(self.time[i])
+                values.append(self.values[i])
+        return TimeSeries(time, values, name=self.names)    
+        

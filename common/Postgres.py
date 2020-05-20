@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import psycopg2
+import pytz
 
 class Structure:
     def __init__(self, name, primary_keys, column_dic):
@@ -233,7 +234,8 @@ class Postgres(object):
                     d.append(value[i])
                 out.append(d)
             return out
-        except:
+        except Exception as e:
+            self.debug(e)
             con.close()
             return None        
         
@@ -257,6 +259,14 @@ class Postgres(object):
         except Exception as e:
             #self.debug(e)
             return False
+        
+    def time2pyTime(self, time_list):
+        time = []
+        for t in time_list:
+            #t0 = datetime.datetime.strptime(tstr, TIME_FORMAT)
+            t1 = t.astimezone(pytz.timezone('Asia/Tokyo'))
+            time.append(t1)
+        return time
         
 # -----
 def deleteAll(dbname, table_name_list):

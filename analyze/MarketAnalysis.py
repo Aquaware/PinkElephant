@@ -171,10 +171,11 @@ def optionAnalyze():
     conditions = db.qureyConditions(limit)
     if db.isTable(tableName(limit)) == False:
         return
-    
     for condition in conditions:
         price = db.queryPrice(condition[0], condition[1], condition[2], None, None)
-        print(condition, price.length)        
+        if price.length > 100:
+            ana = MarketAnalysis(limit + ' ' + condition[1] + ' yen ' + condition[2], price)
+            ana.plotHours(price.time[0], 9)
     
 if __name__ == '__main__':
     optionAnalyze()

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 sys.path.append("../private")
+sys.path.append("../common")
 
 import pandas as pd
 import MetaTrader5 as mt5
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 import calendar
 import setting_xm as setting
 import pytz
+from TimeSeries import TimeSeries, OHLC, OHLCV
 
 
 TIMEZONE_TOKYO = pytz.timezone('Asia/Tokyo')
@@ -225,6 +227,17 @@ class MT5Bind:
         #df.to_csv(market + '_' + str(year) +'-' + str(month) + '-' + str(day) + '.csv', index=False)
         return data
     
+    def toTimeSeries(self, data, data_type=OHLC):
+        time = []
+        values = []
+        for v in data:
+            time.append(v[0])
+            if data_type == OHLCV:
+                values.append(v[1:6])
+            elif data_type == OHLC:
+                values.append(v[1:5])
+        return TimeSeries(time, values, names=data_type)
+
     
 # -----
     
@@ -315,9 +328,9 @@ def test4():
     print('XM2', toXm(jst))
     
     
-def test5():
+def test5(size):
     server = MT5Bind('US30Cash')
-    d =  server.scrape('M5', size=2) 
+    d =  server.scrape('M5', size=size) 
     print(d)
     
 def test6():
@@ -327,4 +340,4 @@ def test6():
     print(d)
     
 if __name__ == "__main__":
-    test()
+    test5(50)
