@@ -120,14 +120,24 @@ def peakPrices(ohlc, delta, max_size, price_low, price_high):
             counts.append(c)
     
     indices = argrelmax(np.array(counts))
-    out = []
+    
+    count_values = []
+    peak_indices = []
+    for index in indices[0]:
+        peak_indices.append(index)
+        count_values.append(counts[index])
+    
+    rank = ranking(count_values)
     count = 0
-    for indice in indices:
-        for index in indice:
-            out.append(center[index])
-            count += 1
-            if count > max_size:
-                return out
+    out = []
+    for r in range(1, max_size):
+        for i in range(len(rank)):
+            if rank[i] == r:
+                index = peak_indices[i]
+                out.append(center[index])
+                count += 1
+                if count > max_size:
+                    break
     return out
 
 def priceDistribution(ohlc, delta):  
@@ -253,7 +263,16 @@ def movingAverage(vector, window):
     for i in range(half, n - half):
         d = vector[i - half: i - half + window]
         out[i] = np.mean(d)
-    return out        
+    return out
+
+def ranking(values):
+    d = pd.Series(values)
+    ranked = d.rank(method="min", ascending=False)
+    l = []
+    for v in ranked.values:
+        l.append(int(v))
+    return l
+
 
 if __name__ == "__main__":
     

@@ -194,6 +194,11 @@ class MT5Bind:
         d = mt5.copy_rates_from_pos(self.stock, setting.timeframeConstant(timeframe) , 0, size) 
         data = self.convert2Array(d)
         return data
+    
+    def scrapeTimeSeries(self, timeframe, size=99999):
+        d = mt5.copy_rates_from_pos(self.stock, setting.timeframeConstant(timeframe) , 0, size) 
+        data = self.convert2Array(d)
+        return self.toTimeSeries(data)
         
     def scrapeRange(self, timeframe, begin_jst, end_jst):
         # タイムゾーンをUTCに設定する
