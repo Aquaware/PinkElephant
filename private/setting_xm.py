@@ -7,8 +7,9 @@ from CalendarTime import DeltaDay, DeltaHour, DeltaMinute
 
 
 XM = {'index'       : ['US30Cash', 'US100Cash', 'US500Cash', 'JP225Cash', 'HK50Cash', 'CHI50Cash', 'GER30Cash', 'UK100Cash'],
-      'fx'          : ['USDJPY', 'AUDJPYmicro', 'GBPJPYmicro', 'CADJPYmicro', 'EURJPYmicro',  'EURUSD', 'EURGBPmicro', 'GBPUSD'],
-      'comodity'    : ['OIL-MAY20', 'GOLD-MAY20', 'PLAT-MAY20', 'CORN-MAY20', 'SBEAN-MAY20', 'WHEAT-MAY20']}
+      'fx'          : ['USDJPY', 'AUDJPYmicro', 'GBPJPYmicro', 'CADJPYmicro', 'EURJPYmicro', 
+                       'EURUSD', 'EURGBPmicro', 'GBPUSD', 'GBPAUDmicro'],
+      'comodity'    : ['OIL-JUL20', 'GOLDmicro', 'PLAT-MAY20', 'CORN-JUL20', 'SBEAN-JUL20', 'WHEAT-JUL20']}
 
 DB_NAME = 'XMMarket'
 

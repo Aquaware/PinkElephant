@@ -107,6 +107,13 @@ class XMDb(Postgres):
             values.append(item[1:6])
         return TimeSeries(time, values, OHLCV)
     
+    def time2pyTime(self, time_list):
+        time = []
+        for t in time_list:
+            #t0 = datetime.datetime.strptime(tstr, TIME_FORMAT)
+            t1 = t.astimezone(pytz.timezone('Asia/Tokyo'))
+            time.append(t1)
+        return time
 # -----
    
 #if __name__ == '__main__':

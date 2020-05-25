@@ -22,7 +22,7 @@ from CalendarTime import Today, DeltaMonth
 import account_click_sec as account
 
 chrome1 = Chrome.ChromeHandler()
-chrome2 = Chrome.ChromeHandler()
+#chrome2 = Chrome.ChromeHandler()
 
 beginTime = datetime.time(21, 5)
 endTime = datetime.time(5, 31)
@@ -40,8 +40,8 @@ def get225fPrices(theMonth):
     pass
 
 def getOptionPrices(theMonth):
-    chrome2.clickButtonByName('reloadButton')
-    parser = OptionParser.OptionParser(chrome2.html())
+    chrome1.clickButtonByName('reloadButton')
+    parser = OptionParser.OptionParser(chrome1.html())
     prices = parser.parse(theMonth)
     db = OptionDb()
     for price in prices:
@@ -68,15 +68,15 @@ def getPrice():
     for i in range(1, len(contractCode)):
         code = contractCode[i]
         try:
-            chrome2.selectListByName('targetDeliveryMonth', code)
-            chrome2.executeJS("changeDeliveryMonth('0')", [])
+            chrome1.selectListByName('targetDeliveryMonth', code)
+            chrome1.executeJS("changeDeliveryMonth('0')", [])
             getOptionPrices(code)
         except:
             continue
         
 def close():
     chrome1.close()
-    chrome2.close()
+    #chrome2.close()
     pass
 
 def login():
@@ -88,7 +88,9 @@ def login():
     chrome1.inputElement('j_password', password)
     chrome1.clickButtonByName('LoginForm')
     chrome1.linkByClassName('js-fuop')
-    chrome1.linkByText('先物注文')
+    chrome1.linkByText('オプション注文')
+    #chrome1.linkByText('先物注文')
+    return
 
     chrome2.connect(url)
     chrome2.inputElement('j_username', userid)
