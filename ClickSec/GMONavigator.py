@@ -62,6 +62,9 @@ def getPrice():
         m = int2str(t.month, 2)
         contractCode.append(y + m)
         t += DeltaMonth(1) 
+    contractCode.append('202057') # 6/5
+    contractCode.append('202058') # 6/19
+    contractCode.append('202059') # 6/26
     
     get225fPrices(contractCode[0])
     #get225fPrices(contractCode[0])
