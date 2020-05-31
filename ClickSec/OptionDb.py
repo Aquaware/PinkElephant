@@ -19,6 +19,11 @@ CONTRACT_MONTH = 'contract_month'
 CONTRACT_PRICE = 'contract_price'
 PRICE = 'price'
 VOLUME = 'volume'
+DELTA = 'delta'
+GAMMA = 'gamma'
+VEGA = 'vega'
+THETA = 'theta'
+IV = 'IV'
 TBEGIN = 'tbegin'
 TEND = 'tend'
 
@@ -32,12 +37,12 @@ def ManageTable(name=MANAGE_TABLE_NAME):
     return table
 
 def PriceTable(contract_month):
-    struct = {TIME: 'timestamp', CONTRACT_PRICE: 'varchar(10)', KIND: 'varchar(10)', PRICE:'real', VOLUME: 'int'}
+    struct = {TIME: 'timestamp', CONTRACT_PRICE: 'varchar(10)', KIND: 'varchar(10)', PRICE:'real', VOLUME: 'int', DELTA:'real', GAMMA:'real', VEGA:'real', THETA:'real', IV:'real'}
     table = Structure(contract_month, [TIME, CONTRACT_PRICE, KIND], struct)
     return table
 
 def tableName(contract_month):
-    return ('Option' + contract_month)
+    return ('Option2_' + contract_month)
 
 class OptionDb(Postgres):
     
@@ -55,7 +60,7 @@ class OptionDb(Postgres):
             is_table = self.isTable(table_name)
             if  is_table == False:
                 self.create(table)
-            if self.update(table, [price.time, price.contract_price, price.kind, price.price, price.volume]):
+            if self.update(table, [price.time, price.contract_price, price.kind, price.price, price.volume, price.delta, price.gamma, price.vega, price.theta, price.iv]):
                 self.updateManage(price)
         return
  

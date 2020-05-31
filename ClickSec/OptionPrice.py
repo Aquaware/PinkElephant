@@ -13,10 +13,15 @@ def importFromTable(contract_month, table):
             # Call
             kind = 'C'
             contract_price = int(row[13])
+            iv = float(row[0])
+            theta = float(row[1])
+            vega = float(row[2])
+            delta = float(row[4])
+            gamma = float(row[5])
             volume = int(row[9])
             price = float(row[11])
             time = parseTime(row[12])
-            p = OptionPrice(time, contract_month, contract_price, kind, price, volume)
+            p = OptionPrice(time, contract_month, contract_price, kind, price, volume, delta, gamma, theta, vega, iv)
             prices.append(p)
         except:
             dummy = 1
@@ -28,7 +33,12 @@ def importFromTable(contract_month, table):
             price = float(row[14])
             time = parseTime(row[15])
             volume = int(row[17])
-            p = OptionPrice(time, contract_month, contract_price, kind, price, volume)
+            delta = float(row[21])
+            gamma = float(row[22])
+            iv = float(row[23])
+            theta = float(row[24])
+            vega = float(row[25])
+            p = OptionPrice(time, contract_month, contract_price, kind, price, volume, delta, gamma, theta, vega, iv)
             prices.append(p)
         except:
             continue
@@ -53,13 +63,18 @@ def parseTime(time_str):
         
 class OptionPrice():
     
-    def __init__(self, time, contract_month, contract_price, kind, price, volume):
+    def __init__(self, time, contract_month, contract_price, kind, price, volume, delta, gamma, iv, theta, vega):
         self.time = time
         self.contract_month = contract_month
         self.contract_price = contract_price 
         self.kind = kind
         self.price = price
         self.volume = volume
+        self.delta = delta
+        self.gamma = gamma
+        self.iv = iv
+        self.theta = theta
+        self.vega = vega
         return
     
     def description(self):
