@@ -68,10 +68,14 @@ def getPrice():
     #contractCode.append('202058') # 6/19
     #contractCode.append('202059') # 6/26
     
-    get225fPrices(contractCode[0])
     #get225fPrices(contractCode[0])
+<<<<<<< HEAD
     for i in range(len(contractCode)):
         code = contractCode[i]
+=======
+    #get225fPrices(contractCode[0])
+    for code in contractCode:
+>>>>>>> 336d0f3489e32782dd6f8f8f74c8b273b8b2fb27
         try:
             chrome1.selectListByName('targetDeliveryMonth', code)
             chrome1.executeJS("changeDeliveryMonth('0')", [])

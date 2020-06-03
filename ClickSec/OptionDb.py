@@ -42,7 +42,7 @@ def PriceTable(contract_month):
     return table
 
 def tableName(contract_month):
-    return ('Option2_' + contract_month)
+    return ('Option_' + contract_month)
 
 class OptionDb(Postgres):
     
@@ -184,5 +184,4 @@ def test2():
     db.updatePrice(p)
     
 if __name__ == '__main__':
-    test1()     
-    test2()
+    build()
