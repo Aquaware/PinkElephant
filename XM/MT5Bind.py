@@ -113,8 +113,12 @@ def delta(timeframe, size):
     elif unit == setting.DAY:
         return deltaDay(value * size)
     return None
-
-
+def time2str(time):
+    s = str(time.year) + '/' + str(time.month) + '/' + str(time.day)
+    s += ' ' + str(time.hour) + ':' + str(time.minute) + ':' + str(time.second)
+    return s
+    
+    
 class MT5Bind:
     def __init__(self, stock):
         self.stock = stock
@@ -195,11 +199,20 @@ class MT5Bind:
         data = self.convert2Array(d)
         return data
     
-    def scrapeTimeSeries(self, timeframe, size=99999):
+    def scrapeWithTimeSeries(self, timeframe, size=99999):
         d = mt5.copy_rates_from_pos(self.stock, setting.timeframeConstant(timeframe) , 0, size) 
         data = self.convert2Array(d)
         return self.toTimeSeries(data)
-        
+    
+    def scrapeWithDic(self, timeframe, size=99999):
+        d = mt5.copy_rates_from_pos(self.stock, setting.timeframeConstant(timeframe) , 0, size) 
+        data = self.convert2Array(d)
+        dic = self.toDic(data)
+        dic['name'] = self.stock
+        dic['timeframe'] = timeframe
+        dic['length'] = len(data)
+        return dic
+    
     def scrapeRange(self, timeframe, begin_jst, end_jst):
         # タイムゾーンをUTCに設定する
         timezone = pytz.timezone("Etc/UTC")
@@ -243,6 +256,18 @@ class MT5Bind:
                 values.append(v[1:5])
         return TimeSeries(time, values, names=data_type)
 
+    def toDic(self, data, data_type=OHLC):
+        time = []
+        dic = {}
+        for v in data:
+            time.append(time2str(v[0]))
+        dic['time'] = time
+        for i in range(len(data_type)):
+            values = []
+            for v in data:
+                values.append(v[i + 1])
+            dic[data_type[i]] = values
+        return dic
     
 # -----
     

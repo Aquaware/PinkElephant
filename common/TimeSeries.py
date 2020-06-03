@@ -2,6 +2,7 @@
 
 from CalendarTime import DTime, DeltaHour, DeltaDay, toNaive
 import numpy as np
+import pandas as pd
 
 
 OHLC = ['open', 'high', 'low', 'close'] 
@@ -22,9 +23,7 @@ class TimeSeries:
         else:
             self.size = 0
             
-            
         self.array = None
-        
         self.dic = {}
         if self.size != len(names):
             return
@@ -43,7 +42,15 @@ class TimeSeries:
                 ary[r, c] = v[c]
         self.array = ary
         return
-        
+    
+    def toDataFrame(self):
+        if len(self.names) < 4:
+            return None
+        data = []
+        for t, value in zip(self.time, self.values):
+            data.append([t, value[0], value[1], value[2], value[3]])
+        df = pd.DataFrame(data= data, columns= ['time'] + OHLC)
+        return df
     
     def timeRangeFilter(self, begin_time, end_time):
         begin_time = toNaive(begin_time)

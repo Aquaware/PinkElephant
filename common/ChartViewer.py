@@ -124,10 +124,12 @@ class ChartViewer:
 #-----------
     
 def test():
-    stock = 'US30Cash'
+    stock = 'JP225Cash'
     server = MT5Bind(stock)
-    data = server.scrape('M5', 120)
+    data = server.scrape('M5', 300)
     d = server.toTimeSeries(data)
+    df = d.toDataFrame()
+    print(df)
     
     fig = plt.figure(figsize=(15, 8))
     ax = fig.add_subplot(1, 1, 1)

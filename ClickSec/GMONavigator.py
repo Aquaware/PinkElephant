@@ -57,18 +57,20 @@ def int2str(d, length):
 def getPrice():
     t = Today()
     contractCode = []
-    for i in range(10):
+    for i in range(1):
         y = int2str(t.year, 4)
         m = int2str(t.month, 2)
         contractCode.append(y + m)
-        t += DeltaMonth(1) 
-    contractCode.append('202057') # 6/5
-    contractCode.append('202058') # 6/19
-    contractCode.append('202059') # 6/26
+        t += DeltaMonth(1)
+    print(contractCode)
+        
+    #contractCode.append('202057') # 6/5
+    #contractCode.append('202058') # 6/19
+    #contractCode.append('202059') # 6/26
     
     get225fPrices(contractCode[0])
     #get225fPrices(contractCode[0])
-    for i in range(1, len(contractCode)):
+    for i in range(len(contractCode)):
         code = contractCode[i]
         try:
             chrome1.selectListByName('targetDeliveryMonth', code)

@@ -19,7 +19,7 @@ from CalendarTime import DTime, DeltaDay, DeltaHour, DeltaMinute, Today, Now
 from MT5Bind import MT5Bind
 
 DATE_FORMAT_TIME = '%H:%M'
-DATE_FORMAT_DAY = '%m-%d'
+DATE_FORMAT_DAY = '%m/%d'
 DATE_FORMAT_DAY_TIME = '%m-%d %H:%M'
 
 def awarePytime2naive(time):
@@ -92,7 +92,7 @@ class DynamicChartViewer(animation.TimedAnimation):
         return
 
     def setChartProperty(self, timef, ohlc):
-        margin = 200
+        margin = 0
         t0 = timef[0]
         t1 = timef[-1]
         dt = t1 - t0
@@ -103,12 +103,12 @@ class DynamicChartViewer(animation.TimedAnimation):
         self.ax.set_ylim(l - margin, h + margin)
         self.ax.grid()
         self.ax.xaxis_date()
-        self.ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+        self.ax.xaxis.set_major_formatter(mdates.DateFormatter(DATE_FORMAT_DAY))
         self.ax.set_xlabel(self.time[0].strftime('%Y/%m/%d') + ' ~ ' + self.time[-1].strftime('%Y/%m/%d'))
         return
     
     def downloadData(self):
-        timeseries = self.server.scrapeTimeSeries(self.timeframe, self.download_size)
+        timeseries = self.server.scrapeWithTimeSeries(self.timeframe, self.download_size)
         length = timeseries.length
         time = timeseries.time
         timef = awarePyTimeList2Float(time)
@@ -150,7 +150,7 @@ class DynamicChartViewer(animation.TimedAnimation):
             t = self.timef[i]
             self._updateCandle(self.candles[i], t, self.ohlc[i])
 
-        prices = Filters.peakPrices(list2array(self.ohlc), 10, 10, np.min(self.ohlc), np.max(self.ohlc))
+        prices = Filters.peakPrices(list2array(self.ohlc), 0.0005, 20, np.min(self.ohlc), np.max(self.ohlc))
         for i in range(len(prices)):
             price = prices[i]
             width = len(prices) - i
@@ -235,12 +235,12 @@ class DynamicChartViewer(animation.TimedAnimation):
 #-----------
     
 def test():
-    stock = 'US30Cash'
+    stock = 'EURCHFmicro'
     server = MT5Bind(stock)
 
     fig = plt.figure(figsize=(20, 8))
     ax = fig.add_subplot(1, 1, 1)
-    view = DynamicChartViewer(fig, ax, server, 'M5', 400)
+    view = DynamicChartViewer(fig, ax, server, 'H8', 300)
     plt.show()
 
 if __name__ == '__main__':
