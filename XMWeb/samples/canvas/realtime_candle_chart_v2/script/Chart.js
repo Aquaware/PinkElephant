@@ -69,7 +69,7 @@ function date2Str (date, format) {
 }
 
 function number2Str(value) {
-    const order = 2;
+    const order = 3;
     if (value == 0) {
         return "0";
     }
@@ -164,8 +164,9 @@ class Square extends GraphicObject {
 }
 
 class Candle extends GraphicObject {
-    constructor(time, open, high, low, close, width, xScale, yScale) {
+    constructor(index, time, open, high, low, close, width, xScale, yScale) {
         super();
+        this.index = index;
         this.time = time;
         this.open = open;
         this.high = high;
@@ -178,7 +179,7 @@ class Candle extends GraphicObject {
     
     draw(context, prop) {
         super.style(context, prop);
-        let x = this.xScale.pos(this.time);
+        let x = this.xScale.pos(this.index);
         let y = this.yScale.pos(this.cy);
         let x0 = x - this.width / 2;
         var upper, lower, bodyColor, lineColor;
@@ -197,7 +198,6 @@ class Candle extends GraphicObject {
         context.fillStyle = bodyColor;
         context.fillRect(x0, lower, this.width, upper - lower);
 
-
         // upper line
         context.globalAlpha = 1.0;
         context.strokeStyle = lineColor;
@@ -212,7 +212,6 @@ class Candle extends GraphicObject {
         context.moveTo(x, lower);
         context.lineTo(x, this.yScale.pos(this.low));
         context.closePath();
-
         context.stroke();
     }
 }
@@ -248,12 +247,17 @@ class PolyLine extends GraphicObject {
 }
 
 class Axis {
-    constructor(scale, level, mainDivision, subDivision, isHorizontal) {
+    constructor(scale, level, mainDivision, subDivision, isHorizontal, time) {
         this.scale = scale;
         this.level = level;
         this.mainDivision = mainDivision;
         this.subDivision = subDivision;
         this.isHorizontal = isHorizontal;
+        if (time === undefined) {
+            this.time = null;
+        } else {
+            this.time = time;
+        }
     }
 
     draw(context) {
@@ -307,7 +311,14 @@ class Axis {
                 context.globalAlpha = 1.0;
                 var s;
                 if (this.scale.type == "linear") {
-                    s = number2Str(v);
+                    if (this.time == null) {
+                        s = number2Str(v);
+                    } else {
+                        let t = this.time[parseInt(v)];
+                        if (t != undefined) {
+                            s = date2Str(t, "HH:mm");
+                        }
+                    }
                 } else if (this.scale.type == "time") {
                     s = date2Str(new Date(v), "HH:mm");
                 }
@@ -367,8 +378,8 @@ class Chart {
         }
     }
 
-    drawAxis(xScale, yScale) {
-        let xAxis = new Axis(xScale, yScale.range, 5, 2, true);
+    drawAxis(xScale, yScale, time) {
+        let xAxis = new Axis(xScale, yScale.range, 5, 2, true, time);
         xAxis.draw(this.context);
         let yAxis = new Axis(yScale, xScale.range, 5, 2, false);
         yAxis.draw(this.context);
@@ -378,14 +389,14 @@ class Chart {
         this.context.textAlign = "center";
         this.context.textBaseline = "top";
         this.context.globalAlpha = 1.0;
-        this.context.fillText(title, this.margin.left + this.width / 2, 20);
+        this.context.fillText(title, this.margin.left + this.canvas.width / 2, 20);
     }
 
     drawXtitle(title, prop) {
         this.context.textAlign = "center";
         this.context.textBaseline = "top";
         this.context.globalAlpha = 1.0;
-        this.context.fillText(title, this.margin.left + this.width / 2, this.height -50);
+        this.context.fillText(title, this.margin.left + this.canvas.width / 2, this.height - 50);
     }
 }
 
@@ -401,6 +412,7 @@ function keyListOfJson(jsonArray, key){
 }
 
 function minmaxDate(d) {
+    var mindate, maxdate;
     for (var i = 0; i < d.length; i++){
         if (i == 0) {
             mindate = d[0];
@@ -423,6 +435,21 @@ function minmax(jsonArray) {
     let highs = keyListOfJson(jsonArray, "high");
     let max = Math.max.apply(null, highs);
     return [min, max];
+}
+
+function slice(data, last, size) {
+    if (last < 0) {
+        last = data.length + last;
+    }
+    let begin = last - size + 1;
+    if (begin < 0 || last > data.size - 1) {
+        return data;
+    }
+    d = []
+    for (var i = begin; i <= last; i++) {
+        d.push(data[i])
+    }
+    return d;
 }
 
 // -----
@@ -454,18 +481,26 @@ function draw1(points) {
 const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
 function draw2(tohlc) {
-    var time = keyListOfJson(tohlc, "time");
-    let dates = minmaxDate(time);
-    let [min, max] = minmax(tohlc);
+    const data_size = 30;
+    const bar_left_margin = 2;
+    const bar_right_margin = 7;
+    let data = slice(tohlc, -5, data_size);
+    var time = keyListOfJson(data, "time");
+    //let dates = minmaxDate(time);
+    let [min, max] = minmax(data);
     let chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
-    let xScale = new Scale(dates, [margin.left, chart.width - margin.right], type="time");
+    let xScale = new Scale([-bar_left_margin, data_size + bar_right_margin], [margin.left, chart.width - margin.right], type="linear");
     let yScale = new Scale([min, max], [chart.height - margin.bottom, margin.top]);
     let prop = {"color": "green", "opacity": 0.5};
-    for (value of tohlc) {
-        let candle = new Candle(value.time, value.open, value.high, value.low, value.close, 6, xScale, yScale);
+
+    let begin = data_size - data.length;
+    let end = data_size - 1;
+    for (var i = begin; i <= end; i++){
+        let value = data[i];
+        let candle = new Candle(i, value.time, value.open, value.high, value.low, value.close, 6, xScale, yScale);
         candle.draw(chart.context, prop);
     }
-    chart.drawAxis(xScale, yScale);
+    chart.drawAxis(xScale, yScale, time);
     chart.drawTitle("Audjpy", {});
     chart.drawXtitle("Time", {});
 }

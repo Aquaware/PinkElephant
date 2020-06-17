@@ -401,6 +401,7 @@ function keyListOfJson(jsonArray, key){
 }
 
 function minmaxDate(d) {
+    var mindate, maxdate;
     for (var i = 0; i < d.length; i++){
         if (i == 0) {
             mindate = d[0];
@@ -454,6 +455,9 @@ function draw1(points) {
 const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
 function draw2(tohlc) {
+    if (tohlc.length == 0) {
+        return;
+    }
     var time = keyListOfJson(tohlc, "time");
     let dates = minmaxDate(time);
     let [min, max] = minmax(tohlc);
