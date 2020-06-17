@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- 軸の属性を決めている。特にfill:none;にしないと真っ黒になる。-->
+    <style>
+      .axis text {
+          font-family: 'Open Sans', sans-serif;
+        font-size: 11px;
+        fill: black;
+      }
+      .axis path {
+          fill: lightgray;
+          opacity: 0.1;
+          stroke: #000;
+          stroke-width: 1;
+          shape-rendering: crispEdges;
+      }
+      .axis line {
+          stroke: #000;
+          stroke-width: 2;
+          shape-rendering: crispEdges;
+      }
+      .grid .tick {
+        stroke: lightskyblue;
+        opacity: 0.3;
+      }
+      .grid path {
+        stroke-width: 0;
+      }
+    </style>
+</head>
+<body>
+  <button>Update</button>  
+  <script src="./static/d3.v3.min.js"></script>
+  <script src="./script/data.js"></script>
+  <script src="./script/drawChart.js"></script>
+</body>
+</html>

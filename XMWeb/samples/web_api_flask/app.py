@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '../XM'))
+sys.path.append('../../../XM')
+sys.path.append('../../../common')
+sys.path.append('../../../private')
 
 from flask import Flask, flash, redirect, render_template, request
 from flask import session, abort, send_from_directory, send_file, jsonify
@@ -35,13 +37,14 @@ def homepage():
 @app.route("/get-data", methods=["GET","POST"])
 def returnStockData():
     j = json.dumps(req.data_dic)
+    print(j)
     return jsonify(j)
 
 def downloadData():
     server = MT5Bind(req.stock)
     dic = server.scrapeWithDic(req.timeframe, req.data_length)
     req.data_dic = dic
-    print(dic)
+    #print(dic)
     pass
     
 if __name__ == "__main__":
