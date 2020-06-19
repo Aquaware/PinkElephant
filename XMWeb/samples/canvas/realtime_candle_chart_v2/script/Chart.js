@@ -1,5 +1,11 @@
-const margin = {top:100, bottom: 100, left: 100, right: 20};
-const canvasSize = {width: 1120, height: 650};
+const MINUTE = 'M';
+const HOUR = 'H';
+const DAY = 'D';
+
+
+let margin = {top:100, bottom: 100, left: 100, right: 20};
+let canvasSize = {width: 1120, height: 650};
+
 
 function separate(value) {
     if (value == 0.0) {
@@ -48,12 +54,30 @@ function niceRange(a, b, divide) {
     if (bb <= b) {
         bb += division;
     }
-    return [aa, bb, division];
+    var array = []
+    for (let v = aa; v <= bb; v += division) {
+        if (v >= a && v <= b) {
+            array.push(v);
+        }
+    }
+    return array;
 }
 
-function deltaMInutes(time, minutes) {
+function deltaMinutes(time, minutes) {
     var out = new Date(time.getTime());
     out.setMinute(out.getMinutes() + minutes);
+    return out;
+}
+
+function deltaHours(time, hours) {
+    var out = new Date(time.getTime());
+    out.setHours(out.getHours() + hours);
+    return out;
+}
+
+function deltaDays(time, days) {
+    var out = new Date(time.getTime());
+    out.setDate(out.getDate() + days);
     return out;
 }
 
@@ -68,6 +92,10 @@ function date2Str (date, format) {
     return format;
 }
 
+function round(value, order) {
+    return Math.floor(value * Math.pow(10, order ) + 0.5) / Math.pow(10, order);
+}
+
 function number2Str(value) {
     const order = 3;
     if (value == 0) {
@@ -76,25 +104,119 @@ function number2Str(value) {
     if (Number.isInteger(value)) {
         return String(value);
     }
-    let v = Math.floor(value * Math.pow(10, order) + 0.5) / Math.pow(10, order);
+    let v = round(value, order);
     return String(v);
 }
 
-function niceTimeRange(t1, t2, divide) {
-    let niceNumbers = [1, 5, 10, 30, 60, 60 * 2, 60 * 4, 60 * 8, 60 * 12, 60 * 24, 60 * 24 * 2, 60 * 24 * 5, 60 * 24 * 10, 60 * 24 * 30];
-    let deltaMinutes = Math.abs(parseInt((t2.getTime() - t1.getTime()) / 60 / 1000));
-    let division = nice(niceNumbers, parseInt(deltaMinutes / divide));
-    let a = parseInt(t1.getTime() / division) * division;
-    if (a > t1.getTime()) {
-        a -= division;
+function nearest1(value, nears) {
+    var dif = [];
+    for( let v of nears) {
+        dif.push(Math.abs(value - v));
     }
-    let b = parseInt (t2.getTime() / division) * division;
-    if (b < t2.getTime()) {
-        b += division;
+    let index = dif.indexOf(Math.min.apply(null, dif));
+    return nears[index];
+}
+
+function nearest2(value, begin, delta) {
+    var difmin, min;
+    for(let v = begin; v < begin + 1000 * delta; v+= delta) {
+        dif = Math.abs(value - v);
+        if (v == begin) {
+            difmin = dif;
+            min = v;
+        }
+        if (dif > difmin) {
+            break;
+        }
     }
-    let t1new = new Date(a);
-    let t2new = new Date(b);
-    return [t1new, t2new, division * 60 * 1000];
+    return min;
+}
+
+function roundMinute(time, minutes) {
+    var array = [];
+    for (let m of minutes) {
+        let t = new Date(time.getFullYear(), time.getMonth(), time.getDate(), time.getHours(), m);
+        array.push(t);
+        array.push(deltaHours(t, -1));
+        array.push(deltaHours(t, 1));
+    }
+    var dif = [];
+    for (let v of array) {
+        dif.push(Math.abs(time.getTime() - v.getTime()));
+    }
+    let index = dif.indexOf(Math.min.apply(null, dif));
+    return array[index];
+}
+
+function roundHour(time, hours) {
+    var array = [];
+    for (let h of hours) {
+        let t = new Date(time.getFullYear(), time.getMonth(), time.getDate(), h);
+        array.push(t);
+        array.push(deltaDays(t, -1));
+        array.push(deltaDays(t, 1));
+    }
+    var dif = [];
+    for (let v of array) {
+        dif.push(Math.abs(time.getTime() - v.getTime()));
+    }
+    let index = dif.indexOf(Math.min.apply(null, dif));
+    return array[index];
+}
+
+function roundDay(time, days) {
+    var array = [];
+    for (let d of days) {
+        let t = new Date(time.getFullYear(), time.getMonth(), d);
+        array.push(t);
+        array.push(deltaDays(t, -1));
+        array.push(deltaDays(t, 1));
+    }
+    var dif = [];
+    for (let v of array) {
+        dif.push(Math.abs(time.getTime() - v.getTime()));
+    }
+    let index = dif.indexOf(Math.min.apply(null, dif));
+    return array[index];
+}
+
+function niceTimeRange(iMin, iMax, time, timeframe, divide) {
+    let [value, unit, minutes] = timeframe;
+    let division = parseInt(iMax / divide);
+    var interval, tbegin;
+    if (unit == DAY) {
+        interval = nearest2(dividion, 10, 10);
+        interval *= (24 * 60 * 60 * 1000);
+        tbegin = roundDay(time[0], [1, 15]);
+    } else if(unit == MINUTE) {
+        if (value == 1) {
+            interval = nearest1(division, [5, 10, 15]);
+            tbegin = roundMinute(time[0], [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
+        } else {
+            interval = nearest2(divisionm, value * 6, 30);
+            tbegin = roundMinute(time[0], [0, 15, 30, 45]);
+        }
+        interval *= (60 * 1000);
+    } else if (unit == HOUR) {
+        interval = nerest2(division, value * 6, 12);
+        tbegin = roundHour(time[0], [0, 4, 89, 12, 16, 20]);
+    }
+    var array = [];
+    var t = tbegin.getTime();
+    for (var i = 0; i < divide * 4; i++) {
+        t += interval;
+        let t0 = new Date(t);
+        if (t > time[time.length - 1].getTime()) {
+            break;
+        }
+        for (var j = 0; j < time.length - 1; j++) {
+            if (time[j].getTime() == t) {
+                array.push([j, t0]);
+                break;
+            }
+        }
+    }
+    return array;
 }
 
 class Scale {
@@ -105,7 +227,7 @@ class Scale {
             type = "linear"
         }
         this.type = type;
-        if (type == "linear") {
+        if (type == "linear" || type == "bartime") {
             let delta1 = range[1] - range[0];
             let delta2 = domain[1] - domain[0];
             if (delta1 == 0.0 || delta2 == 0.0) {
@@ -125,7 +247,7 @@ class Scale {
     }
     
     pos(value) {
-        if (this.type == "linear") {
+        if (this.type == "linear" || this.type == "bartime") {
             let v = value - this.domain[0];
             return v * this.rate + this.range[0];
         } else if (this.type == "time") {
@@ -247,7 +369,7 @@ class PolyLine extends GraphicObject {
 }
 
 class Axis {
-    constructor(scale, level, mainDivision, subDivision, isHorizontal, time) {
+    constructor(scale, level, mainDivision, subDivision, isHorizontal, time, timeframe) {
         this.scale = scale;
         this.level = level;
         this.mainDivision = mainDivision;
@@ -255,9 +377,25 @@ class Axis {
         this.isHorizontal = isHorizontal;
         if (time === undefined) {
             this.time = null;
+            this.timeframe = null;
         } else {
             this.time = time;
+            this.timeframe = this.parseTimeframe(timeframe);
         }
+    }
+
+    parseTimeframe(timeframe) {
+        let unit = timeframe.substring(0, 1);
+        let figure = parseInt(timeframe.substring(1));
+        var minutes;
+        if (unit == MINUTE) {
+            minutes = figure;
+        } else if(unit == HOUR) {
+            minutes = figure * 60;
+        } else if (unit == DAY) {
+            minutes = figure * 24 * 60;
+        }
+        return [figure, unit, minutes];
     }
 
     draw(context) {
@@ -282,21 +420,20 @@ class Axis {
         context.lineWidth = 0.2;
         context.font = 'bold 12px Times Roman';
         context.strokeStyle = "grey";
-        var min, max, division;
+        var range;
         if (this.scale.type == "linear") {
-            [min, max, division] = niceRange(lower, upper, this.mainDivision);
+            range = niceRange(lower, upper, this.mainDivision);
+        } else if (this.scale.type == "bartime") {
+            range = niceTimeRange(this.scale.domain[0], this.scale.domain[1], this.time, this.timeframe, this.mainDivision);
         } else if (this.scale.type == "time") {
-            let [tmin, tmax, division0] = niceTimeRange(this.scale.domain[0], this.scale.domain[1], this.mainDivision);
-            division = division0;
-            min = tmin.getTime();
-            max = tmax.getTime();
+            range = niceTimeRange(this.scale.domain[0], this.scale.domain[1]);
         }
-        for (let v = min; v <= max; v += division) {
-            if (v < lower || v > upper) {
-                continue;
-            }
+        for (let v of range) {
+
             if (this.scale.type == "linear") {
                 value = this.scale.pos(v);
+            } else if (this.scale.type == "bartime") {
+                value = this.scale.pos(v[0]);
             } else if (this.scale.type == "time") {
                 value = this.scale.pos(new Date(v));
             }
@@ -311,14 +448,9 @@ class Axis {
                 context.globalAlpha = 1.0;
                 var s;
                 if (this.scale.type == "linear") {
-                    if (this.time == null) {
-                        s = number2Str(v);
-                    } else {
-                        let t = this.time[parseInt(v)];
-                        if (t != undefined) {
-                            s = date2Str(t, "HH:mm");
-                        }
-                    }
+                    s = number2Str(v);
+                } else if (this.scale.type == "bartime") {
+                    s = date2Str(v[1], "HH:mm");    
                 } else if (this.scale.type == "time") {
                     s = date2Str(new Date(v), "HH:mm");
                 }
@@ -378,8 +510,8 @@ class Chart {
         }
     }
 
-    drawAxis(xScale, yScale, time) {
-        let xAxis = new Axis(xScale, yScale.range, 5, 2, true, time);
+    drawAxis(xScale, yScale, time, timeframe) {
+        let xAxis = new Axis(xScale, yScale.range, 5, 2, true, time, timeframe);
         xAxis.draw(this.context);
         let yAxis = new Axis(yScale, xScale.range, 5, 2, false);
         yAxis.draw(this.context);
@@ -481,7 +613,7 @@ function draw1(points) {
 const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
 function draw2(tohlc) {
-    const data_size = 30;
+    const data_size = 35;
     const bar_left_margin = 2;
     const bar_right_margin = 7;
     let data = slice(tohlc, -5, data_size);
@@ -489,7 +621,7 @@ function draw2(tohlc) {
     //let dates = minmaxDate(time);
     let [min, max] = minmax(data);
     let chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
-    let xScale = new Scale([-bar_left_margin, data_size + bar_right_margin], [margin.left, chart.width - margin.right], type="linear");
+    let xScale = new Scale([-bar_left_margin, data_size + bar_right_margin], [margin.left, chart.width - margin.right], type="bartime");
     let yScale = new Scale([min, max], [chart.height - margin.bottom, margin.top]);
     let prop = {"color": "green", "opacity": 0.5};
 
@@ -500,7 +632,7 @@ function draw2(tohlc) {
         let candle = new Candle(i, value.time, value.open, value.high, value.low, value.close, 6, xScale, yScale);
         candle.draw(chart.context, prop);
     }
-    chart.drawAxis(xScale, yScale, time);
+    chart.drawAxis(xScale, yScale, time, "M1");
     chart.drawTitle("Audjpy", {});
     chart.drawXtitle("Time", {});
 }
