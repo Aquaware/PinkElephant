@@ -258,36 +258,83 @@ class Scale {
 }
 
 class GraphicObject {
-    style(context, prop) {
-        context.globalAlpha = prop['opacity'];
-        context.fillStyle = prop['color'];
+    constructor(context) {
+        this.context = context;
+    }
+
+    style(prop) {
+        try {
+            this.context.globalAlpha = prop['opacity'];
+        } catch(e) {
+        }
+        try {
+            this.context.lineColor = prop['lineColor'];
+        } catch(e) {
+        }
+        try {
+            this.context.fillStyle = prop['fillColor'];
+        } catch(e) {
+        }
+    }
+
+    drawLine(point0, point1, prop) {
+        this.style(prop);
+        this.context.beginPath();
+        this.context.moveTo(point0[0], point0[1]);
+        this.context.lineTo(point1[0], point1[1]);
+        this.context.closePath();
+        this.context.stroke();
+    }
+
+    drawSquare(point0, point1, prop) {
+        this.style(prop);
+        let x, y, width, height;
+        if (point0[0] < point1[0]) {
+            x = point0[0];
+        } else {
+            x = point1[0];
+        }
+        width = Math.abs(point1[0] - point0[0]);
+        if (point0[1] < point1[1]) {
+            y = point0[1];
+        } else {
+            y = point1[1];
+        }
+        height = Math.abs(point1[1] - point0[1]);
+        this.ontext.fillRect(x, y, width, height);    
     }
 }
 
 class Square extends GraphicObject {
-    constructor(cx, cy, width, height, xScale, yScale) {
-        super();
-        this.cx = cx;
-        this.cy = cy;
-        this.width = width;
-        this.height = height;
+    constructor(context, xScale, yScale) {
+        super(context);
         this.xScale = xScale;
         this.yScale = yScale;
     }
     
-    draw(context, prop) {
-        super.style(context, prop);
+    draw(cx, cy, width, height, prop) {
+        super.style(prop);
+        this.cx = cx;
+        this.cy = cy;
+        this.width = width;
+        this.height = height;
         let x = this.xScale.pos(this.cx);
         let y = this.yScale.pos(this.cy);
         let x0 = x - this.width / 2;
         let y0 = y - this.height / 2;
-        context.fillRect(x0, y0, this.width, this.height);
+        this.context.fillRect(x0, y0, this.width, this.height);
     }
 }
 
 class Candle extends GraphicObject {
-    constructor(index, time, open, high, low, close, width, xScale, yScale) {
-        super();
+    constructor(context, xScale, yScale) {
+        super(context);
+        this.xScale = xScale;
+        this.yScale = yScale;
+    }
+    
+    draw(index, time, open, high, low, close, width, prop) {
+        super.style(prop);
         this.index = index;
         this.time = time;
         this.open = open;
@@ -295,59 +342,48 @@ class Candle extends GraphicObject {
         this.low = low;
         this.close = close;
         this.width = width;
-        this.xScale = xScale;
-        this.yScale = yScale;
-    }
-    
-    draw(context, prop) {
-        super.style(context, prop);
-        let x = this.xScale.pos(this.index);
-        let y = this.yScale.pos(this.cy);
+
+        let x = this.xScale.pos(index);
         let x0 = x - this.width / 2;
         var upper, lower, bodyColor, lineColor;
         if (this.open < this.close) {
-            upper = this.yScale.pos(this.close);
-            lower = this.yScale.pos(this.open);
-            bodyColor = "blue";
-            lineColor = "cyan"
+            upper = this.yScale.pos(close);
+            lower = this.yScale.pos(open);
+            bodyColor = "green";
+            lineColor = "lime"
         } else {
-            upper = this.yScale.pos(this.open);
-            lower = this.yScale.pos(this.close);
+            upper = this.yScale.pos(open);
+            lower = this.yScale.pos(close);
             bodyColor = "red";
             lineColor = "pink"    
         }
         // body
-        context.fillStyle = bodyColor;
-        context.fillRect(x0, lower, this.width, upper - lower);
+        this.context.fillStyle = bodyColor;
+        this.context.fillRect(x0, lower, width, upper - lower);
 
         // upper line
-        context.globalAlpha = 1.0;
-        context.strokeStyle = lineColor;
-        context.beginPath();
-        context.moveTo(x, this.yScale.pos(this.high));
-        context.lineTo(x, upper);
-        context.closePath();
-        context.stroke();
+        this.context.globalAlpha = 1.0;
+        this.context.strokeStyle = lineColor;
+        this.drawLine([x, this.yScale.pos(high)], [x, upper], {})
 
         // lower line
-        context.beginPath();
-        context.moveTo(x, lower);
-        context.lineTo(x, this.yScale.pos(this.low));
-        context.closePath();
-        context.stroke();
+        this.drawLine([x, lower], [x, this.yScale.pos(low)], {})
+   
     }
 }
 
 class PolyLine extends GraphicObject {
-    constructor(points, xScale, yScale) {
-        super();
-        this.points = points;
+    constructor(context, xScale, yScale) {
+        super(context);
         this.xScale = xScale;
         this.yScale = yScale;
     }
     
-    draw(context, prop, should_fill) {
+    draw(points, prop, should_fill) {
+        this.points = points;
         super.style(context, prop);
+        context.globalAlpha = prop["opacity"];
+        context.strokeStyle = prop["lineColor"];
         context.beginPath();
         let isFirst = True;
         for (p of this.points) {
@@ -505,8 +541,8 @@ class Chart {
         let width = 10;
         let height = 10;
         for(let p of points) {
-            let point = new Square(p[0], p[1], width, height, xScale, yScale);
-            point.draw(this.context, prop);
+            let point = new Square(this.context, xScale, yScale);
+            point.draw(p[0], p[1], width, height, prop);
         }
     }
 
@@ -605,7 +641,7 @@ function draw1(points) {
     let chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
     let xScale = new Scale([0, 1000], [margin.left, chart.width - margin.right]);
     let yScale = new Scale([0, 500], [chart.height - margin.bottom, margin.top]);
-    let prop = {"color": "green", "opacity": 0.5};
+    let prop = {"lineColor": "green", "opacity": 0.5};
     chart.drawPoints(points, xScale, yScale, prop);
     chart.drawAxis(xScale, yScale);
 }
@@ -629,8 +665,8 @@ function draw2(tohlc) {
     let end = data_size - 1;
     for (var i = begin; i <= end; i++){
         let value = data[i];
-        let candle = new Candle(i, value.time, value.open, value.high, value.low, value.close, 6, xScale, yScale);
-        candle.draw(chart.context, prop);
+        let candle = new Candle(chart.context, xScale, yScale);
+        candle.draw(i, value.time, value.open, value.high, value.low, value.close, 6, prop);
     }
     chart.drawAxis(xScale, yScale, time, "M1");
     chart.drawTitle("Audjpy", {});
