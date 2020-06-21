@@ -2,7 +2,7 @@ const MINUTE = 'M';
 const HOUR = 'H';
 const DAY = 'D';
 
-let margin = {top:100, bottom: 100, left: 100, right: 20};
+let margin = {top:100, bottom: 100, left: 100, right: 100};
 let canvasSize = {width: 1120, height: 650};
 
 function separate(value) {
@@ -668,6 +668,29 @@ class Chart {
         line(this.context, [x, this.yScale.range[0]], [x, this.yScale.range[1]]);
         let yvalue = this.yScale.value(y);
         line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y]);
+
+
+        this.context.font = "14px Arial";
+        this.context.textAlign = "left";
+        this.context.textBaseline = "middle";
+        this.context.fillRect(this.width - this.margin.right, y - 12, 70, 32);
+        this.context.fillStyle = "#eeffee";
+        this.context.fillText(String(round(yvalue, 4)), this.width - this.margin.right + 8 , y + 4);
+
+        if (this.candles == null) {
+            return true;
+        }
+        if (xvalue < 0 || xvalue > this.candles.length - 1) {
+            return false;
+        }
+        let candle = this.candles[xvalue];
+        let dispx = this.width - this.margin.right - 100;
+        this.context.fillStyle = "black";
+        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 10);
+        this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 30);
+        this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 50);
+        this.context.fillText("Low: " + String(round(candle.low, 5)), dispx, 70);
+        this.context.fillText("Close: " + String(round(candle.close, 5)), dispx, 90);
         return true;
     }
 }
