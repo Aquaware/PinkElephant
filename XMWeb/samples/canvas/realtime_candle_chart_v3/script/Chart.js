@@ -181,23 +181,24 @@ function roundDay(time, days) {
 function niceTimeRange(iMin, iMax, time, timeframe, divide) {
     let [value, unit, minutes] = timeframe;
     let division = parseInt(iMax / divide);
-    var interval, tbegin;
+    var delta, interval, tbegin;
     if (unit == DAY) {
-        interval = nearest2(dividion, 10, 10);
-        interval *= (24 * 60 * 60 * 1000);
+        delta = nearest2(dividion, 10, 10);
+        interval = num * (24 * 60 * 60 * 1000);
         tbegin = roundDay(time[0], [1, 15]);
     } else if(unit == MINUTE) {
         if (value == 1) {
-            interval = nearest1(division, [5, 10, 15]);
+            delta = nearest1(division, [5, 10, 15]);
             tbegin = roundMinute(time[0], [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
         } else {
-            interval = nearest2(divisionm, value * 6, 30);
+            delta = nearest2(divisionm, value * 6, 30);
             tbegin = roundMinute(time[0], [0, 15, 30, 45]);
         }
-        interval *= (60 * 1000);
+        interval = delta * (60 * 1000);
     } else if (unit == HOUR) {
-        interval = nerest2(division, value * 6, 12);
-        tbegin = roundHour(time[0], [0, 4, 89, 12, 16, 20]);
+        delta = nerest2(division, value * 6, 12);
+        interval = delta * (60 * 60 * 1000);
+        tbegin = roundHour(time[0], [0, 4, 8, 12, 16, 20]);
     }
     var array = [];
     var t = tbegin.getTime();
@@ -207,23 +208,37 @@ function niceTimeRange(iMin, iMax, time, timeframe, divide) {
         if (t > time[time.length - 1].getTime()) {
             break;
         }
-        for (var j = 0; j < time.length - 1; j++) {
+        for (var j = 0; j < time.length; j++) {
             if (time[j].getTime() == t) {
                 array.push([j, t0]);
-                break;
             }
         }
     }
     return array;
 }
 
-function line(context, pos1, pos2) {
+// ---- draw primitives ----
+function line(context, pos1, pos2, lineWidth=1.0, style="solid") {
+    context.lineWidth = lineWidth;
+    if (style.toLowerCase() == "dot") {
+        let dash = [1, 1];
+        context.setLineDash(dash);
+    }
     context.beginPath();
     context.moveTo(pos1[0], pos1[1]);
     context.lineTo(pos2[0], pos2[1]);
     context.closePath();
     context.stroke();
 }
+
+function boxedText(context, point, text, color) {
+
+
+
+}
+
+// ------
+
 
 class Scale {
     constructor(domain, range, type) {
@@ -280,6 +295,17 @@ class Scale {
             return new Date(v);
         }
     }
+
+    rangeWidth() {
+        let w = Math.abs(this.range[0] - this.range[1]);
+        return w;
+    }
+
+    domainWidth() {
+        let w = Math.abs(this.domain[0] - this.domain[1]);
+        return w;
+    }
+
 }
 
 class GraphicObject {
@@ -503,7 +529,11 @@ class Axis {
                 if (this.scale.type == "linear") {
                     s = number2Str(v);
                 } else if (this.scale.type == "bartime") {
-                    s = date2Str(v[1], "HH:mm");    
+                    if (v[1]) {
+                        s = date2Str(v[1], "HH:mm");
+                    } else {
+                        s = "";
+                    }
                 } else if (this.scale.type == "time") {
                     s = date2Str(new Date(v), "HH:mm");
                 }
@@ -520,13 +550,12 @@ class Axis {
             context.stroke();
         }
 
-        context.lineWidth = 1.0;
         if (this.isHorizontal) {
-            line(context, [this.scale.range[0], this.level[0]], [this.scale.range[1], this.level[0]]);
-            line(context, [this.scale.range[0], this.level[1]], [this.scale.range[1], this.level[1]]);
+            line(context, [this.scale.range[0], this.level[0]], [this.scale.range[1], this.level[0]], 2.0);
+            line(context, [this.scale.range[0], this.level[1]], [this.scale.range[1], this.level[1]], 2.0);
         } else {
-            line(context, [this.level[0], this.scale.range[0]], [this.level[0], this.scale.range[1]]);
-            line(context, [this.level[1], this.scale.range[0]], [this.level[1], this.scale.range[1]]);
+            line(context, [this.level[0], this.scale.range[0]], [this.level[0], this.scale.range[1]], 2.0);
+            line(context, [this.level[1], this.scale.range[0]], [this.level[1], this.scale.range[1]], 2.0);
         }
         context.stroke();
     }
@@ -545,50 +574,82 @@ class Chart {
         this.tohlc = null;
         this.xScale = null;
         this.yScale = null;
-        this.isCursorDrawed = false;
+        this.crossPoint = null;
         this.eventControl();
         this.showLength = 30;
     }
 
+    setBarNumber(number) {
+        this.showLength = number;
+        this.update()
+    }
+
     load(tohlc) {
         this.tohlc = tohlc;
+        this.update();
+    }
+
+    update() {
+        if (!this.tohlc) {
+            return;
+        }
+        let data = slice(this.tohlc, -5, this.showLength);
+        if (!data) {
+            return;
+        }
+        this.currentData = data;
+        this.currentIndex = this.showLength - data.length;
+        this.makeScale(this.showLength, minmax(data));
         var self = this;
         setInterval(function(e) {
-            self.render(self.tohlc, self.showLength);}
+            self.render(self.currentData, self.currentIndex);}
         , 1000 / 30);
     }
 
-    render(tohlc, showLength) {
-        if (tohlc == null) {
-            return;
-        }
+    makeScale(showLength, minmax) {
         const bar_left_margin = 2;
         const bar_right_margin = 7;
-
-        this.context.clearRect(0, 0, this.width, this.height);
-        this.isCursorDrawed = false;
-
-        let data = slice(tohlc, -5, showLength);
-        let begin = showLength - data.length;
-        let end = showLength - 1;
-        var time = keyListOfJson(data, "time");
-        let [min, max] = minmax(data);
-        let xScale = new Scale([-bar_left_margin, showLength + bar_right_margin], [margin.left, this.width - margin.right], "bartime");
+        let xScale = new Scale([-bar_left_margin, showLength + bar_right_margin], [this.margin.left, this.width - this.margin.right], "bartime");
         this.xScale = xScale;
-        let yScale = new Scale([min, max], [this.height - margin.bottom, margin.top]);
+        let yScale = new Scale(minmax, [this.height - this.margin.bottom, this.margin.top]);
         this.yScale = yScale;
+    }
+
+    render(tohlc, beginIndex) {
+        if (!tohlc) {
+            return;
+        }
+        this.context.clearRect(0, 0, this.width, this.height);
         let candles = []
         let prop = {"color": "green", "opacity": 0.5};
-        for (var i = begin; i <= end; i++){
-            let value = data[i];
-            let candle = new Candle(this.context, xScale, yScale);
+        let w = this.candleWidth(this.xScale.rangeWidth(), this.showLength);
+        for (var i = 0; i < tohlc.length; i++){
+            let value = tohlc[i];
+            let candle = new Candle(this.context, this.xScale, this.yScale);
             candles.push(candle);
-            candle.draw(i, value.time, value.open, value.high, value.low, value.close, 6, prop);
+            candle.draw(i + beginIndex, value.time, value.open, value.high, value.low, value.close, w, prop);
         }
+        let time = keyListOfJson(tohlc, "time");
         this.candles = candles;
         this.drawAxis(time, "M1");
         this.drawTitle("Audjpy", {});
         this.drawXtitle("Time", {});
+        if (candles.length > 0) {
+            this.drawCursor(candles[candles.length - 1]);
+        }
+        if (!this.curorPoint) {
+            this.drawCross(this.crossPoint);
+        }
+    }
+
+    candleWidth(range, bar_size) {
+        let w = parseInt(range / bar_size);
+        if (w < 0) {
+            w = 1;
+        } else if (w > 10) {
+            w = 10;
+        }
+        return w;
     }
 
     drawPoints(points, prop) {
@@ -616,83 +677,99 @@ class Chart {
         this.context.textAlign = "center";
         this.context.textBaseline = "top";
         this.context.globalAlpha = 1.0;
-        this.context.fillText(title, this.margin.left + this.canvas.width / 2, 20);
+        this.context.fillText(title, this.canvas.width / 2, 20);
     }
 
     drawXtitle(title, prop) {
         this.context.textAlign = "center";
         this.context.textBaseline = "top";
         this.context.globalAlpha = 1.0;
-        this.context.fillText(title, this.margin.left + this.canvas.width / 2, this.height - 50);
+        this.context.fillText(title, this.canvas.width / 2, this.height - 50);
     }
 
     eventControl(){
         this.canvas.onmousemove = e => {
-            if (this.isCursorDrawed) {
-                return;
-            }
             let rect = this.canvas.getBoundingClientRect();
-            let pos = [e.clientX - rect.left, e.clientY - rect.top];
-            this.isCursorDrawed = this.drawCursor(pos);
+            let point = [e.clientX - rect.left, e.clientY - rect.top];
+            this.updateCurorPoint(point);
         };
     }
 
-    drawCursor(position) {
-        if (this.tohlc == null || this.xScale == null || this.yScale == null) {
-            return false;
-        }
-        let [x, y] = position;
-        let upper = this.xScale.range[0];
-        let lower = this.xScale.range[1];
-        if (lower > upper) {
-            let tmp = lower;
-            lower = upper;
-            upper = tmp;
-        }
-        if (x < lower || x > upper) {
-            return false;
+    updateCurorPoint(point) {
+        let [x, y] = point;
+        let xval = this.xScale.value(x);
+        if (xval < 0 || xval > this.showLength) {
+            this.crossPoint = null;
+            return;
         }
 
-        upper = this.yScale.range[0];
-        lower = this.yScale.range[1];
+        let upper = this.yScale.range[0];
+        let lower = this.yScale.range[1];
         if (lower > upper) {
             let tmp = lower;
             lower = upper;
             upper = tmp;
         }
         if (y < lower || y > upper) {
-            return false;
+            this.crossPoint = null;
+            return;
         }
-        
+        this.crossPoint = point;
+    }
+
+    drawCursor(candle) {
+        let y = this.yScale.pos(candle.close);
+        this.context.strokeStyle = "#aaaaff";
+        line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y], 0.5);
+        this.context.font = "12px Arial";
+        this.context.textAlign = "left";
+        this.context.textBaseline = "middle";
+        this.context.fillStyle = "#aaaaff";
+        this.context.fillRect(this.width - this.margin.right - 60, y - 10, 60, 24);
+        this.context.fillStyle = "#444444";
+        this.context.fillText(String(round(candle.close, 4)), this.width - this.margin.right - 50 , y + 4);
+    }
+
+
+    drawCross(point) {
+        if (this.tohlc == null || this.xScale == null || this.yScale == null) {
+            return;
+        }
+        if (!point) {
+            return;
+        }
+        let [x, y] = point;
+
         let xvalue = this.xScale.value(x);
         line(this.context, [x, this.yScale.range[0]], [x, this.yScale.range[1]]);
         let yvalue = this.yScale.value(y);
         line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y]);
 
-
-        this.context.font = "14px Arial";
+        this.context.font = "12px Arial";
         this.context.textAlign = "left";
         this.context.textBaseline = "middle";
-        this.context.fillRect(this.width - this.margin.right, y - 12, 70, 32);
-        this.context.fillStyle = "#eeffee";
-        this.context.fillText(String(round(yvalue, 4)), this.width - this.margin.right + 8 , y + 4);
+        this.context.fillStyle = "#77ff77";
+        this.context.fillRect(this.width - this.margin.right, y - 10, 70, 24);
+        this.context.fillStyle = "#000000";
+        this.context.fillText(String(round(yvalue, 4)), this.width - this.margin.right + 5 , y + 3);
 
         if (this.candles == null) {
-            return true;
+            return;
         }
         if (xvalue < 0 || xvalue > this.candles.length - 1) {
-            return false;
+            return;
         }
         let candle = this.candles[xvalue];
-        let dispx = this.width - this.margin.right - 100;
+        let dispx = this.width - this.margin.right - 160;
         this.context.fillStyle = "black";
         this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 10);
         this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 30);
         this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 50);
         this.context.fillText("Low: " + String(round(candle.low, 5)), dispx, 70);
         this.context.fillText("Close: " + String(round(candle.close, 5)), dispx, 90);
-        return true;
     }
+
+
 }
 
 // -----
@@ -749,33 +826,27 @@ function slice(data, last, size) {
 
 // -----
 
-function test1() {
-    let points = [[100, 0], [200, 250], [300, 500], [400, 300], [500, 200], [600, 100], [700, 500]];
-    draw1(points);
-}
-
-function test2() {
-    let points = [[100, 0], [200, 20], [400, 10], [400, 200], [500, 5], [600, 12], [700, 500]];
-    draw1(points);
-}
-
-function test3() {
-    let data = dataSource();
-    draw2(data);
-}
-
-function draw1(points) {
-    let xScale = new Scale([0, 1000], [margin.left, canvasSize.width - margin.right]);
-    let yScale = new Scale([0, 500], [canvasSize.height - margin.bottom, margin.top]);
-    let chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
-    let prop = {"lineColor": "green", "opacity": 0.5};
-    chart.drawPoints(points, prop);
-    chart.drawAxis();
-}
-
 const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
-function draw2(tohlc) {
-    let chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
+function httpValues(ids) {
+    var out = [];
+    for (let e of ids) {
+        let v = document.getElementById(e).value;
+        out.push(parseInt(v));
+    }
+    return out;
+}
+
+var chart;
+function load() {
+    let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
+    let tohlc = dataSource();
+    chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
+    chart.setBarNumber(barNumber);
     chart.load(tohlc);
+}
+
+function update() {
+    let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
+    chart.setBarNumber(barNumber);
 }

@@ -32,10 +32,11 @@
 </head>
 <body>
   <div>
-    <button style="padding: .5em .8em" onclick="test1()">Initial</button>
-    <button style="padding: .5em .8em" onclick="test2()">Update</button>
-    <button style="padding: .5em .8em" onclick="test3()">Insert</button>
-    <button style="padding: .5em .8em" onclick="removeLast()">Remove</button>
+    Number of bars
+    <input id="barnumber" name="number" value="30"></input>
+    Price Range:
+    <input id="pricerange" name="price" value="1"></input>
+    <button style="padding: .5em .8em" onclick="update()">Update</button>
   </div>
   <div id = "canvas-wrapper">
     <canvas id = "canvas1"></canvas>
@@ -44,7 +45,7 @@
   <script src="./script/data.js"></script>
   <script src="./script/Chart.js"></script>
   <script>
-    //test();
+    load();
   </script>
 </body>
 </html>
