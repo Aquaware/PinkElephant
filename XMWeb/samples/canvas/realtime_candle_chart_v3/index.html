@@ -31,19 +31,23 @@
   </style>
 </head>
 <body>
+  <script src="./static/d3.v3.min.js"></script>
+  <script src="./script/data.js"></script>
+  <script src="./script/Chart.js"></script>
+  <script src="./script/Filters.js"></script>
   <div>
     Number of bars
     <input id="barnumber" name="number" value="30"></input>
     Price Range:
     <input id="pricerange" name="price" value="1"></input>
     <button style="padding: .5em .8em" onclick="update()">Update</button>
+    <button style="padding: .5em .8em" onclick="test()">Test</button>
   </div>
   <div id = "canvas-wrapper">
     <canvas id = "canvas1"></canvas>
+    <canvas id = "canvas2"></canvas>
   </div>
-  <script src="./static/d3.v3.min.js"></script>
-  <script src="./script/data.js"></script>
-  <script src="./script/Chart.js"></script>
+
   <script>
     load();
   </script>

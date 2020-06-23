@@ -2,8 +2,7 @@ const MINUTE = 'M';
 const HOUR = 'H';
 const DAY = 'D';
 
-let margin = {top:100, bottom: 100, left: 100, right: 100};
-let canvasSize = {width: 1120, height: 650};
+const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
 function separate(value) {
     if (value == 0.0) {
@@ -425,27 +424,27 @@ class PolyLine extends GraphicObject {
         this.yScale = yScale;
     }
     
-    draw(points, prop, should_fill) {
+    draw(points, prop, should_fill=false) {
         this.points = points;
-        super.style(context, prop);
-        context.globalAlpha = prop["opacity"];
-        context.strokeStyle = prop["lineColor"];
-        context.beginPath();
-        let isFirst = True;
-        for (p of this.points) {
-            x = this.xScale.pos(p[0]);
-            y = this.yScale.pos(p[1]);
+        this.context.globalAlpha = prop["opacity"];
+        this.context.strokeStyle = prop["lineColor"];
+        this.context.lineWidth = prop["lineWidth"];
+        this.context.beginPath();
+        let isFirst = true;
+        for (let p of this.points) {
+            let x = this.xScale.pos(p[0]);
+            let y = this.yScale.pos(p[1]);
             if (isFirst) {
-                context.moveTo(x, y);
-                isFirst = False;
+                this.context.moveTo(x, y);
+                isFirst = false;
                 continue;
             }
-            context.lineTo(x, y);
+            this.context.lineTo(x, y);
         }
-        context.closePath();
-        context.stroke();
+        //this.context.closePath();
+        this.context.stroke();
         if (should_fill) {
-            context.fill();
+            this.context.fill();
         }
     }
 }
@@ -562,14 +561,14 @@ class Axis {
 }
 
 class Chart {
-    constructor(canvas, width, height, margin) {
+    constructor(canvas, size) {
         this.canvas = canvas;
-        this.width = width;
-        this.height = height;
-        this.margin = margin;
+        this.width = size.size.width;
+        this.height = size.size.height;
+        this.margin = size.margin;
         this.context = canvas.getContext('2d');
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = size.size.width;
+        canvas.height = size.size.height;
         this.showLength = 30;
         this.tohlc = null;
         this.xScale = null;
@@ -593,7 +592,9 @@ class Chart {
         if (!this.tohlc) {
             return;
         }
-        let data = slice(this.tohlc, -5, this.showLength);
+        let end = this.tohlc.length - 1;
+        let begin = end - this.showLength + 1;
+        let data = slice(this.tohlc, begin, end);
         if (!data) {
             return;
         }
@@ -607,8 +608,8 @@ class Chart {
     }
 
     makeScale(showLength, minmax) {
-        const bar_left_margin = 2;
-        const bar_right_margin = 7;
+        const bar_left_margin = 5;
+        const bar_right_margin = 10;
         let xScale = new Scale([-bar_left_margin, showLength + bar_right_margin], [this.margin.left, this.width - this.margin.right], "bartime");
         this.xScale = xScale;
         let yScale = new Scale(minmax, [this.height - this.margin.bottom, this.margin.top]);
@@ -633,17 +634,19 @@ class Chart {
         this.candles = candles;
         this.drawAxis(time, "M1");
         this.drawTitle("Audjpy", {});
-        this.drawXtitle("Time", {});
+        //this.drawXtitle("Time", {});
         if (candles.length > 0) {
             this.drawCursor(candles[candles.length - 1]);
         }
         if (!this.curorPoint) {
             this.drawCross(this.crossPoint);
         }
+
+        this.drawMA(tohlc, 20);
     }
 
     candleWidth(range, bar_size) {
-        let w = parseInt(range / bar_size);
+        let w = parseInt(range / bar_size / 2);
         if (w < 0) {
             w = 1;
         } else if (w > 10) {
@@ -722,14 +725,13 @@ class Chart {
         this.context.strokeStyle = "#aaaaff";
         line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y], 0.5);
         this.context.font = "12px Arial";
-        this.context.textAlign = "left";
+        this.context.textAlign = "right";
         this.context.textBaseline = "middle";
         this.context.fillStyle = "#aaaaff";
-        this.context.fillRect(this.width - this.margin.right - 60, y - 10, 60, 24);
+        this.context.fillRect(this.width - this.margin.right - 45, y - 5, 45, 16);
         this.context.fillStyle = "#444444";
-        this.context.fillText(String(round(candle.close, 4)), this.width - this.margin.right - 50 , y + 4);
+        this.context.fillText(String(round(candle.close, 4)), this.width - this.margin.right -5 , y + 4);
     }
-
 
     drawCross(point) {
         if (this.tohlc == null || this.xScale == null || this.yScale == null) {
@@ -745,13 +747,14 @@ class Chart {
         let yvalue = this.yScale.value(y);
         line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y]);
 
-        this.context.font = "12px Arial";
+        this.context.font = "11px Arial";
         this.context.textAlign = "left";
         this.context.textBaseline = "middle";
         this.context.fillStyle = "#77ff77";
-        this.context.fillRect(this.width - this.margin.right, y - 10, 70, 24);
+        let dispx = this.margin.left + 5;
+        this.context.fillRect(dispx, y - 10, 40, 20);
         this.context.fillStyle = "#000000";
-        this.context.fillText(String(round(yvalue, 4)), this.width - this.margin.right + 5 , y + 3);
+        this.context.fillText(String(round(yvalue, 4)), dispx, y + 3);
 
         if (this.candles == null) {
             return;
@@ -760,16 +763,38 @@ class Chart {
             return;
         }
         let candle = this.candles[xvalue];
-        let dispx = this.width - this.margin.right - 160;
+        dispx = this.width - this.margin.right - 150;
         this.context.fillStyle = "black";
-        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 10);
-        this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 30);
-        this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 50);
-        this.context.fillText("Low: " + String(round(candle.low, 5)), dispx, 70);
-        this.context.fillText("Close: " + String(round(candle.close, 5)), dispx, 90);
+        this.context.font = "11px Arial";
+        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 45);
+        this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 60);
+        this.context.fillText("Close: " + String(round(candle.close, 5)), dispx + 80, 60);
+        this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 75);
+        this.context.fillText("Low: " + String(round(candle.low, 5)), dispx + 80, 75);
     }
 
+    drawMA(tohlc, tap) {
 
+        var time = [];
+        var close = []
+        for (let v of tohlc) {
+            time.push(v.time);
+            close.push(v.close);
+        }
+
+        let ma = MA(close, tap);
+        var points = [];
+        for (let i = 0; i < ma.length; i++) {
+            let value = ma[i];
+            if (value) {
+                points.push([i, value]);
+            }
+        }
+
+        let lines = new PolyLine(this.context, this.xScale, this.yScale);
+        lines.draw(points, {opacity: 0.5, lineColor: "red", lineWidth: 2.0});
+
+    }
 }
 
 // -----
@@ -826,8 +851,6 @@ function slice(data, last, size) {
 
 // -----
 
-const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
-
 function httpValues(ids) {
     var out = [];
     for (let e of ids) {
@@ -837,16 +860,21 @@ function httpValues(ids) {
     return out;
 }
 
-var chart;
+var chart1, chart2;
 function load() {
+    let size = {size: {width: 640, height: 400}, margin: {top:80, bottom: 50, left: 60, right: 60}};
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
     let tohlc = dataSource();
-    chart = new Chart(document.getElementById("canvas1"), canvasSize.width, canvasSize.height, margin);
-    chart.setBarNumber(barNumber);
-    chart.load(tohlc);
+    chart1 = new Chart(document.getElementById("canvas1"), size);
+    chart1.setBarNumber(barNumber);
+    chart1.load(tohlc);
+    chart2 = new Chart(document.getElementById("canvas2"), size);
+    chart2.setBarNumber(barNumber);
+    chart2.load(tohlc);
 }
 
 function update() {
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
-    chart.setBarNumber(barNumber);
+    chart1.setBarNumber(barNumber);
+    chart2.setBarNumber(barNumber);
 }

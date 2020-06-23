@@ -1,5 +1,5 @@
 var format = d3.time.format("%Y-%M-%d %H:%M:%S");
-audjpy = [	"time,open,high,low,close,volume",
+let audjpy = [	"time,open,high,low,close,volume",
 			//"2015-01-02 07:00:00,97.94,97.947,97.919,97.919,0.0",
 			//"2015-01-02 07:01:00,97.92,97.924,97.896,97.896,0.0",
 			"2015-01-02 07:02:00,97.894,97.897,97.891,97.897,0.0",
