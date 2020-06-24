@@ -1,4 +1,3 @@
-var format = d3.time.format("%Y-%M-%d %H:%M:%S");
 let audjpy = [	"time,open,high,low,close,volume",
 			//"2015-01-02 07:00:00,97.94,97.947,97.919,97.919,0.0",
 			//"2015-01-02 07:01:00,97.92,97.924,97.896,97.896,0.0",
@@ -58,34 +57,3 @@ let audjpy = [	"time,open,high,low,close,volume",
 			"2015-01-02 07:55:00,97.886,97.888,97.874,97.888,0.0",
 			"2015-01-02 07:56:00,97.888,97.888,97.883,97.884,0.0",
             "2015-01-02 07:57:00,97.884,97.885,97.862,97.866,0.0"];
-
-function csv2Json(csvArray){
-    var array = [];   
-    // header element
-    var items = csvArray[0].split(',');
-    for (var i = 1; i < csvArray.length; i++) {
-        var a_line = new Object();
-        var values = csvArray[i].split(',');
-        for (var j = 0; j < items.length; j++) {
-            a_line[items[j]] = values[j];
-        }
-        array.push(a_line);
-    }
-    //console.debug(jsonArray);
-    return array;
-}
-
-function dataSource() { 
-	let json = csv2Json(audjpy);
-	let data = json.map(function(d){
-        // 日付をDate型に
-		return  {time:format.parse(d.time),
-					open: parseFloat(d.open),
-					high: parseFloat(d.high),
-					low: parseFloat(d.low),
-					close: parseFloat(d.close),
-					volume: parseFloat(d.volume)};
-	});
-	return data;
-}
-

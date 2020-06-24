@@ -4,6 +4,30 @@ const DAY = 'D';
 
 const zip = (arr1, arr2) => arr1.map((k, i) => [k, arr2[i]]);
 
+function minmaxOfArray(array) {
+    if (array.length == 0) {
+        return [NaN, NaN];
+    }
+    var min = NaN;
+    var max = NaN;
+    for (let i = 0; i < array.length; i++) {
+        if (array[i]) {
+            if (!min || !max) {
+                min = array[i];
+                max = array[i];
+            } else {
+                if (array[i] < min) {
+                    min = array[i];
+                }
+                if (array[i] > max) {
+                    max = array[i];
+                }
+            }
+        }
+    }
+    return [min, max];
+}
+
 function separate(value) {
     if (value == 0.0) {
         return [0.0, 0.0];
@@ -240,7 +264,7 @@ function boxedText(context, point, text, color) {
 
 
 class Scale {
-    constructor(domain, range, type) {
+    constructor(domain, range, type, time, timeframe) {
         this.domain = domain;
         this.range = range;
         if (type === undefined) {
@@ -264,6 +288,14 @@ class Scale {
                 this.rate = delta1 / delta2;
             }            
         } 
+
+        if (type == "bartime") {
+            this.time = time;
+            this.timeframe = timeframe;
+        } else{
+            this.time = null;
+            this.timeframe = null;
+        }
     }
     
     pos(value) {
@@ -305,12 +337,31 @@ class Scale {
         return w;
     }
 
+    rangeLowerUpper() {
+        let lower = this.range[0];
+        let upper = this.range[1];
+        if (upper < lower) {
+            let tmp = lower;
+            lower = upper;
+            upper = tmp;
+        }
+        return [lower, upper];
+    }
+
+    domainLowerUpper() {
+        let lower = this.domain[0];
+        upper = this.domain[1];
+        if (upper < lower) {
+            let tmp = lower;
+            lower = upper;
+            upper = tmp;
+        }
+        return [lower, upper];
+    }
+
 }
 
 class GraphicObject {
-    constructor(context) {
-        this.context = context;
-    }
 
     style(prop) {
         try {
@@ -327,124 +378,111 @@ class GraphicObject {
         }
     }
 
-    drawLine(point0, point1, prop) {
-        this.style(prop);
-        line(this.context, point0, point1);
-    }
-
-    drawSquare(point0, point1, prop) {
-        this.style(prop);
-        let x, y, width, height;
-        if (point0[0] < point1[0]) {
-            x = point0[0];
-        } else {
-            x = point1[0];
-        }
-        width = Math.abs(point1[0] - point0[0]);
-        if (point0[1] < point1[1]) {
-            y = point0[1];
-        } else {
-            y = point1[1];
-        }
-        height = Math.abs(point1[1] - point0[1]);
-        this.ontext.fillRect(x, y, width, height);    
+    draw(context, xScale, yScale) {
     }
 }
 
 class Square extends GraphicObject {
-    constructor(context, xScale, yScale) {
-        super(context);
-        this.xScale = xScale;
-        this.yScale = yScale;
-    }
-    
-    draw(cx, cy, width, height, prop) {
-        super.style(prop);
+    constructor(cx, cy, width, height, prop) {
         this.cx = cx;
         this.cy = cy;
         this.width = width;
         this.height = height;
-        let x = this.xScale.pos(this.cx);
-        let y = this.yScale.pos(this.cy);
+        this.prop = prop;
+    }
+    
+    draw(context, xScale, yScale) {
+        super.style(prop);
+        let x = xScale.pos(this.cx);
+        let y = yScale.pos(this.cy);
         let x0 = x - this.width / 2;
         let y0 = y - this.height / 2;
-        this.context.fillRect(x0, y0, this.width, this.height);
+        context.fillRect(x0, y0, this.width, this.height);
     }
 }
 
-class Candle extends GraphicObject {
-    constructor(context, xScale, yScale) {
-        super(context);
-        this.xScale = xScale;
-        this.yScale = yScale;
-    }
-    
-    draw(index, time, open, high, low, close, width, prop) {
-        super.style(prop);
+class Candle  {
+    constructor(index, time, open, high, low, close, showLength, prop) {
         this.index = index;
         this.time = time;
         this.open = open;
         this.high = high;
         this.low = low;
         this.close = close;
-        this.width = width;
-
-        let x = this.xScale.pos(index);
-        let x0 = x - this.width / 2;
+        this.showLength = showLength;
+        this.prop = prop;
+    }
+    
+    draw(context, xScale, yScale) {
+        let width = this.candleWidth(xScale.rangeWidth(), this.showLength);
+        let x = xScale.pos(this.index);
+        let x0 = x - width / 2;
         var upper, lower, bodyColor, lineColor;
         if (this.open < this.close) {
-            upper = this.yScale.pos(close);
-            lower = this.yScale.pos(open);
+            upper = yScale.pos(this.close);
+            lower = yScale.pos(this.open);
             bodyColor = "green";
             lineColor = "lime"
         } else {
-            upper = this.yScale.pos(open);
-            lower = this.yScale.pos(close);
+            upper = yScale.pos(this.open);
+            lower = yScale.pos(this.close);
             bodyColor = "red";
             lineColor = "pink"    
         }
         // body
-        this.context.fillStyle = bodyColor;
-        this.context.fillRect(x0, lower, width, upper - lower);
+        context.globalAlpha = 0.5;
+        context.fillStyle = bodyColor;
+        context.fillRect(x0, lower, width, upper - lower);
 
         // upper line
-        this.context.globalAlpha = 1.0;
-        this.context.strokeStyle = lineColor;
-        this.drawLine([x, this.yScale.pos(high)], [x, upper], {})
+        context.globalAlpha = 0.7;
+        context.strokeStyle = lineColor;
+        line(context, [x, yScale.pos(this.high)], [x, upper]);
 
         // lower line
-        this.drawLine([x, lower], [x, this.yScale.pos(low)], {})
+        line(context, [x, lower], [x, yScale.pos(this.low)]);
+    }
+
+
+    candleWidth(range, barSize) {
+        let w = parseInt(range / barSize / 2);
+        if (w < 0) {
+            w = 1;
+        } else if (w > 10) {
+            w = 10;
+        }
+        return w;
     }
 }
 
 class PolyLine extends GraphicObject {
-    constructor(context, xScale, yScale) {
-        super(context);
-        this.xScale = xScale;
-        this.yScale = yScale;
+    constructor(points, prop, shouldFill=false) {
+        super();
+        this.points = points;
+        this.prop = prop;
+        this.shouldFill= shouldFill;
     }
     
-    draw(points, prop, should_fill=false) {
-        this.points = points;
-        this.context.globalAlpha = prop["opacity"];
-        this.context.strokeStyle = prop["lineColor"];
-        this.context.lineWidth = prop["lineWidth"];
-        this.context.beginPath();
+    draw(context, xScale, yScale) {
+        context.globalAlpha = this.prop["opacity"];
+        context.strokeStyle = this.prop["lineColor"];
+        context.lineWidth = this.prop["lineWidth"];
+        context.beginPath();
         let isFirst = true;
         for (let p of this.points) {
-            let x = this.xScale.pos(p[0]);
-            let y = this.yScale.pos(p[1]);
+            let x = xScale.pos(p[0]);
+            let y = yScale.pos(p[1]);
             if (isFirst) {
-                this.context.moveTo(x, y);
+                context.moveTo(x, y);
                 isFirst = false;
                 continue;
             }
-            this.context.lineTo(x, y);
+            context.lineTo(x, y);
         }
         //this.context.closePath();
-        this.context.stroke();
-        if (should_fill) {
-            this.context.fill();
+        context.stroke();
+        if (this.shouldFill) {
+            context.fill();
         }
     }
 }
@@ -560,8 +598,108 @@ class Axis {
     }
 }
 
+class Graph {
+    constructor(context, timeScale, scales) {
+        this.context = context;
+        this.timeScale = timeScale;
+        this.scales = scales;
+    }
+
+    isInner(point) {
+        let [x, y] = point;
+        var index = -1;
+        for (let i = 0; i < this.scales.length; i++) {
+            let scale = this.scales[i];
+            let xval = this.timeScale.value(x);
+            let [lower, upper] = scale.rangeLowerUpper();
+            let tmp = this.timeScale.domain;
+            if (xval >= 0 && xval <= this.timeScale.domain[1]) {
+                if (y >= lower && y <= upper) {
+                    index = i;
+                    break;
+                }
+            }
+        }
+        return index;
+    }
+
+    updateScaleDomain(index, domain) {
+        let oldScale = this.scales[index];
+        let scale = new Scale(domain, oldScale.range, oldScale.type);
+        this.scales[index] = scale;
+    }
+
+    draw(index, graphicObject) {
+        graphicObject.draw(this.context, this.timeScale, this.scales[index]);
+    }
+
+    drawAxis() {
+        let time = this.timeScale.time;
+        let timeframe = this.timeScale.timeframe;
+        for (let i = 0; i < this.scales.length; i++) {
+            let scale = this.scales[i];
+            let xAxis = new Axis(this.timeScale, scale.range, 5, 2, true, time, timeframe);
+            xAxis.draw(this.context);
+            let yAxis = new Axis(scale, this.timeScale.range, 5, 2, false);
+            yAxis.draw(this.context); 
+        }
+    }
+
+    drawCursor(index, candle) {
+        this.context.globalAlpha = 1.0;
+        let scale = this.scales[index];
+        let y = scale.pos(candle.close);
+        this.context.strokeStyle = "#ccaaff";
+        line(this.context, [this.timeScale.range[0], y], [this.timeScale.range[1], y], 0.5);
+        this.context.font = "12px Arial";
+        this.context.textAlign = "right";
+        this.context.textBaseline = "middle";
+        this.context.fillStyle = "#aaaaff";
+        let [lower, upper] = this.timeScale.rangeLowerUpper();
+        this.context.fillRect(upper - 45, y - 5, 45, 16);
+        this.context.fillStyle = "#444444";
+        this.context.fillText(String(round(candle.close, 4)), upper -5 , y + 4);
+    }
+
+    drawCross(index, point, candles) {
+        let scale = this.scales[index];
+        let [lower, upper] = this.timeScale.rangeLowerUpper();
+        let [x, y] = point;
+
+        let color = "#ccdd77";
+        this.context.globalAlpha = 0.5;
+        let xvalue = this.timeScale.value(x);
+        this.context.strokeStyle = color;
+        line(this.context, [x, scale.range[0]], [x, scale.range[1]]);
+        let yvalue = scale.value(y);
+        line(this.context, [this.timeScale.range[0], y], [this.timeScale.range[1], y]);
+
+        this.context.globalAlpha = 0.8;
+        this.context.font = "11px Arial";
+        this.context.textAlign = "left";
+        this.context.textBaseline = "middle";
+        this.context.fillStyle = color;
+        let dispx = lower + 5;
+        this.context.fillRect(dispx, y - 10, 40, 20);
+        this.context.fillStyle = "#000000";
+        this.context.fillText(String(round(yvalue, 4)), dispx, y + 3);
+        if (xvalue < 0 || xvalue > candles.length - 1) {
+            return;
+        }
+        let candle = candles[xvalue];
+        dispx = upper - 150;
+        this.context.fillStyle = "black";
+        this.context.font = "11px Arial";
+        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 45);
+        this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 60);
+        this.context.fillText("Close: " + String(round(candle.close, 5)), dispx + 80, 60);
+        this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 75);
+        this.context.fillText("Low: " + String(round(candle.low, 5)), dispx + 80, 75);
+    }
+}
+
 class Chart {
-    constructor(canvas, size) {
+    constructor(canvas, size, timeframe) {
         this.canvas = canvas;
         this.width = size.size.width;
         this.height = size.size.height;
@@ -569,10 +707,11 @@ class Chart {
         this.context = canvas.getContext('2d');
         canvas.width = size.size.width;
         canvas.height = size.size.height;
+        this.graphHeights = size.heights;
+        this.timeframe = timeframe;
         this.showLength = 30;
         this.tohlc = null;
-        this.xScale = null;
-        this.yScale = null;
+        this.graph = null;
         this.crossPoint = null;
         this.eventControl();
         this.showLength = 30;
@@ -589,6 +728,43 @@ class Chart {
     }
 
     update() {
+        var self = this;
+        setInterval(function(e) {
+            self.render();}
+        , 1000 / 30);
+    }
+
+    createGraph(data, minmax) {
+        const bar_left_margin = 5;
+        const bar_right_margin = 10;
+        if (!data) {
+            return;
+        }
+
+        let length = data.length;
+        let time = keyListOfJson(data, "time");
+        let timeScale = new Scale([-bar_left_margin, length + bar_right_margin], [this.margin.left, this.width - this.margin.right], "bartime", time, this.timeframe);
+        let height = this.height - this.margin.bottom - this.margin.top;
+        let y = this.margin.top;
+        let scales = [];
+        let padding = 50;
+        for (let i = 0; i < this.graphHeights.length; i++) {
+            let rate = this.graphHeights[i];
+            let h = rate * height;
+            if (i == 0) {
+                let scale = new Scale(minmax, [y + h, y]);
+                scales.push(scale);
+            } else {
+                let scale = new Scale([0, 1], [y + h, y + padding]);
+                scales.push(scale);
+            }
+            y += h;
+        }
+        let graph = new Graph(this.context, timeScale, scales);
+        return graph;
+    }
+
+    render() {
         if (!this.tohlc) {
             return;
         }
@@ -598,61 +774,39 @@ class Chart {
         if (!data) {
             return;
         }
-        this.currentData = data;
-        this.currentIndex = this.showLength - data.length;
-        this.makeScale(this.showLength, minmax(data));
-        var self = this;
-        setInterval(function(e) {
-            self.render(self.currentData, self.currentIndex);}
-        , 1000 / 30);
-    }
-
-    makeScale(showLength, minmax) {
-        const bar_left_margin = 5;
-        const bar_right_margin = 10;
-        let xScale = new Scale([-bar_left_margin, showLength + bar_right_margin], [this.margin.left, this.width - this.margin.right], "bartime");
-        this.xScale = xScale;
-        let yScale = new Scale(minmax, [this.height - this.margin.bottom, this.margin.top]);
-        this.yScale = yScale;
-    }
-
-    render(tohlc, beginIndex) {
-        if (!tohlc) {
-            return;
-        }
+        //this.currentIndex = this.showLength - data.length;
+        this.graph = this.createGraph(data, minmax(data));
         this.context.clearRect(0, 0, this.width, this.height);
         let candles = []
         let prop = {"color": "green", "opacity": 0.5};
-        let w = this.candleWidth(this.xScale.rangeWidth(), this.showLength);
-        for (var i = 0; i < tohlc.length; i++){
-            let value = tohlc[i];
-            let candle = new Candle(this.context, this.xScale, this.yScale);
-            candles.push(candle);
-            candle.draw(i + beginIndex, value.time, value.open, value.high, value.low, value.close, w, prop);
+        
+        for (var i = 0; i < data.length; i++){
+            let value = data[i];
+            if (value) {
+                let candle = new Candle(i, value.time, value.open, value.high, value.low, value.close, this.showLength, prop);
+                candles.push(candle);
+                this.graph.draw(0, candle);
+            }
         }
-        let time = keyListOfJson(tohlc, "time");
+        //let time = keyListOfJson(data, "time");
         this.candles = candles;
-        this.drawAxis(time, "M1");
         this.drawTitle("Audjpy", {});
         //this.drawXtitle("Time", {});
+
+        this.graph.drawAxis();
+        
         if (candles.length > 0) {
-            this.drawCursor(candles[candles.length - 1]);
+            this.graph.drawCursor(0, candles[candles.length - 1]);
         }
-        if (!this.curorPoint) {
-            this.drawCross(this.crossPoint);
+        if (this.crossPoint) {
+            let index = this.graph.isInner(this.crossPoint);
+            if (index == 0) {
+                this.graph.drawCross(0, this.crossPoint, candles);
+            }
         }
 
-        this.drawMA(tohlc, 20);
-    }
-
-    candleWidth(range, bar_size) {
-        let w = parseInt(range / bar_size / 2);
-        if (w < 0) {
-            w = 1;
-        } else if (w > 10) {
-            w = 10;
-        }
-        return w;
+        this.drawMA(20);
+        this.drawRSI(14);
     }
 
     drawPoints(points, prop) {
@@ -664,19 +818,9 @@ class Chart {
         }
     }
 
-    drawAxis(time, timeframe) {
-        let xAxis, yAxis;
-        if (this.xScale.type == "linear") {
-            xAxis = new Axis(this.xScale, this.yScale.range, 5, 2, true);
-        } else if (this.xScale.type == "bartime") {
-            xAxis = new Axis(this.xScale, this.yScale.range, 5, 2, true, time, timeframe);
-        }
-        xAxis.draw(this.context);
-        yAxis = new Axis(this.yScale, this.xScale.range, 5, 2, false);
-        yAxis.draw(this.context);
-    }
-
     drawTitle(title, prop) {
+        this.context.fillStyle = "black";
+        this.context.font = "14px Arial";
         this.context.textAlign = "center";
         this.context.textBaseline = "top";
         this.context.globalAlpha = 1.0;
@@ -699,90 +843,26 @@ class Chart {
     }
 
     updateCurorPoint(point) {
-        let [x, y] = point;
-        let xval = this.xScale.value(x);
-        if (xval < 0 || xval > this.showLength) {
-            this.crossPoint = null;
-            return;
-        }
-
-        let upper = this.yScale.range[0];
-        let lower = this.yScale.range[1];
-        if (lower > upper) {
-            let tmp = lower;
-            lower = upper;
-            upper = tmp;
-        }
-        if (y < lower || y > upper) {
-            this.crossPoint = null;
-            return;
-        }
         this.crossPoint = point;
+        for (let i = 0; i < this.graph.scales.length; i++) {
+            let index = this.graph.isInner(point);
+            if (index == 0) {
+                this.crossPoint = point;
+                break;
+            }
+        } 
     }
 
-    drawCursor(candle) {
-        let y = this.yScale.pos(candle.close);
-        this.context.strokeStyle = "#aaaaff";
-        line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y], 0.5);
-        this.context.font = "12px Arial";
-        this.context.textAlign = "right";
-        this.context.textBaseline = "middle";
-        this.context.fillStyle = "#aaaaff";
-        this.context.fillRect(this.width - this.margin.right - 45, y - 5, 45, 16);
-        this.context.fillStyle = "#444444";
-        this.context.fillText(String(round(candle.close, 4)), this.width - this.margin.right -5 , y + 4);
-    }
-
-    drawCross(point) {
-        if (this.tohlc == null || this.xScale == null || this.yScale == null) {
-            return;
-        }
-        if (!point) {
-            return;
-        }
-        let [x, y] = point;
-
-        let xvalue = this.xScale.value(x);
-        line(this.context, [x, this.yScale.range[0]], [x, this.yScale.range[1]]);
-        let yvalue = this.yScale.value(y);
-        line(this.context, [this.xScale.range[0], y], [this.xScale.range[1], y]);
-
-        this.context.font = "11px Arial";
-        this.context.textAlign = "left";
-        this.context.textBaseline = "middle";
-        this.context.fillStyle = "#77ff77";
-        let dispx = this.margin.left + 5;
-        this.context.fillRect(dispx, y - 10, 40, 20);
-        this.context.fillStyle = "#000000";
-        this.context.fillText(String(round(yvalue, 4)), dispx, y + 3);
-
-        if (this.candles == null) {
-            return;
-        }
-        if (xvalue < 0 || xvalue > this.candles.length - 1) {
-            return;
-        }
-        let candle = this.candles[xvalue];
-        dispx = this.width - this.margin.right - 150;
-        this.context.fillStyle = "black";
-        this.context.font = "11px Arial";
-        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 45);
-        this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 60);
-        this.context.fillText("Close: " + String(round(candle.close, 5)), dispx + 80, 60);
-        this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 75);
-        this.context.fillText("Low: " + String(round(candle.low, 5)), dispx + 80, 75);
-    }
-
-    drawMA(tohlc, tap) {
-
-        var time = [];
+    drawMA(windowWidth) {
         var close = []
-        for (let v of tohlc) {
-            time.push(v.time);
+        for (let v of this.tohlc) {
             close.push(v.close);
         }
+        let ma0 = MA(close, windowWidth);
+        let end = this.tohlc.length - 1;
+        let begin = end - this.showLength + 1;
+        let ma = slice(ma0, begin, end);
 
-        let ma = MA(close, tap);
         var points = [];
         for (let i = 0; i < ma.length; i++) {
             let value = ma[i];
@@ -791,9 +871,30 @@ class Chart {
             }
         }
 
-        let lines = new PolyLine(this.context, this.xScale, this.yScale);
-        lines.draw(points, {opacity: 0.5, lineColor: "red", lineWidth: 2.0});
+        let lines = new PolyLine(points, {opacity: 0.5, lineColor: "red", lineWidth: 2.0});
+        this.graph.draw(0, lines);
+    }
 
+    drawRSI(windowWidth) {
+        var close = []
+        for (let v of this.tohlc) {
+            close.push(v.close);
+        }
+        let rsi0 = RSI(close, windowWidth);
+        let end = this.tohlc.length - 1;
+        let begin = end - this.showLength + 1;
+        let rsi = slice(rsi0, begin, end);
+        var points = [];
+        for (let i = 0; i < rsi.length; i++) {
+            let value = rsi[i];
+            if (value) {
+                points.push([i, value]);
+            }
+        }
+        let lines = new PolyLine(points, {opacity: 0.5, lineColor: "blue", lineWidth: 2.0});
+        let domain = minmaxOfArray(rsi);
+        this.graph.updateScaleDomain(1, domain);
+        this.graph.draw(1, lines);
     }
 }
 
@@ -802,8 +903,13 @@ class Chart {
 function keyListOfJson(jsonArray, key){
     var dates = []
     for (var i = 0; i < jsonArray.length; i++) {
-        var d = jsonArray[i][key]
-        dates.push(d);
+        let v = jsonArray[i];
+        if (v) {
+            var d = jsonArray[i][key]
+            dates.push(d);
+        } else {
+            dates.push(null);
+        }
     }
     return dates;
 }
@@ -834,17 +940,17 @@ function minmax(jsonArray) {
     return [min, max];
 }
 
-function slice(data, last, size) {
+function slice(data, begin, last) {
     if (last < 0) {
         last = data.length + last;
     }
-    let begin = last - size + 1;
-    if (begin < 0 || last > data.size - 1) {
-        return data;
-    }
     d = []
     for (var i = begin; i <= last; i++) {
-        d.push(data[i])
+        if (i >= 0) {
+            d.push(data[i]);
+        } else {
+            d.push(null);
+        }
     }
     return d;
 }
@@ -862,15 +968,15 @@ function httpValues(ids) {
 
 var chart1, chart2;
 function load() {
-    let size = {size: {width: 640, height: 400}, margin: {top:80, bottom: 50, left: 60, right: 60}};
+    let size = {size: {width: 800, height: 600}, margin: {top:80, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
-    let tohlc = dataSource();
-    chart1 = new Chart(document.getElementById("canvas1"), size);
+    let tohlc = dataSource("audjpy");
+    chart1 = new Chart(document.getElementById("canvas1"), size, "M1");
     chart1.setBarNumber(barNumber);
     chart1.load(tohlc);
-    chart2 = new Chart(document.getElementById("canvas2"), size);
-    chart2.setBarNumber(barNumber);
-    chart2.load(tohlc);
+    //chart2 = new Chart(document.getElementById("canvas2"), size);
+    //chart2.setBarNumber(barNumber);
+    //chart2.load(tohlc);
 }
 
 function update() {
