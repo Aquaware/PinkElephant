@@ -205,23 +205,30 @@ function niceTimeRange(iMin, iMax, time, timeframe, divide) {
     let [value, unit, minutes] = timeframe;
     let division = parseInt(iMax / divide);
     var delta, interval, tbegin;
+
     if (unit == DAY) {
-        delta = nearest2(dividion, 10, 10);
-        interval = num * (24 * 60 * 60 * 1000);
-        tbegin = roundDay(time[0], [1, 15]);
-    } else if(unit == MINUTE) {
+        delta = nearest2(division, 10, 10);
+        tbegin = time[0];
+        array = [];
+        for (let i = 0; i <= iMax; i += parseInt(delta)) {
+            array.push([i, time[i]]);
+        }
+        return array;
+    }
+    
+    if(unit == MINUTE) {
         if (value == 1) {
             delta = nearest1(division, [5, 10, 15]);
             tbegin = roundMinute(time[0], [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
         } else {
-            delta = nearest2(divisionm, value * 6, 30);
+            delta = nearest2(division, value * 6, 30);
             tbegin = roundMinute(time[0], [0, 15, 30, 45]);
         }
         interval = delta * (60 * 1000);
     } else if (unit == HOUR) {
-        delta = nerest2(division, value * 6, 12);
+        delta = nearest2(division, value * 6, 12);
         interval = delta * (60 * 60 * 1000);
-        tbegin = roundHour(time[0], [0, 4, 8, 12, 16, 20]);
+        tbegin = time[0]; //roundHour(time[0], [0, 4, 8, 12, 16, 20]);
     }
     var array = [];
     var t = tbegin.getTime();
@@ -970,8 +977,8 @@ var chart1, chart2;
 function load() {
     let size = {size: {width: 800, height: 600}, margin: {top:80, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
-    let tohlc = dataSource("audjpy");
-    chart1 = new Chart(document.getElementById("canvas1"), size, "M1");
+    let tohlc = dataSource("jp225");
+    chart1 = new Chart(document.getElementById("canvas1"), size, "D1");
     chart1.setBarNumber(barNumber);
     chart1.load(tohlc);
     //chart2 = new Chart(document.getElementById("canvas2"), size);

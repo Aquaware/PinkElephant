@@ -1,4 +1,4 @@
-var format = d3.time.format("%Y-%M-%d %H:%M:%S");
+
 
 function csv2Json(csvArray){
     var array = [];   
@@ -18,20 +18,25 @@ function csv2Json(csvArray){
 
 function dataSource(name) {
 	var json;
+	var format;
 	if (name == "audjpy") {
 		json = audjpy;
+		format = d3.time.format("%Y-%M-%d %H:%M:%S");
 	} else if (name == "oil") {
 		json = oil;
+		format = d3.time.format("%Y-%M-%d %H:%M");
 	} else if (name == "gold") {
+		format = d3.time.format("%Y-%M-%d %H:%M");
 		json = gold;
 	} else if (name == "jp225") {
+		format = d3.time.format("%Y/%M/%d");
 		json = jp225;
 	}
 	
 	let dic = csv2Json(json);
 	let data = dic.map(function(d){
         // 日付をDate型に
-		return  {time:format.parse(d.time),
+		return  {time: format.parse(d.time),
 					open: parseFloat(d.open),
 					high: parseFloat(d.high),
 					low: parseFloat(d.low),
