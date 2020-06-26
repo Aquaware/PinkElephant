@@ -102,15 +102,36 @@ function deltaDays(time, days) {
     return out;
 }
 
-function date2Str (date, format) {
-    format = format.replace(/yyyy/g, date.getFullYear());
-    format = format.replace(/MM/g, ('0' + (date.getMonth() + 1)).slice(-2));
-    format = format.replace(/dd/g, ('0' + date.getDate()).slice(-2));
-    format = format.replace(/HH/g, ('0' + date.getHours()).slice(-2));
-    format = format.replace(/mm/g, ('0' + date.getMinutes()).slice(-2));
-    format = format.replace(/ss/g, ('0' + date.getSeconds()).slice(-2));
-    format = format.replace(/SSS/g, ('00' + date.getMilliseconds()).slice(-3));
+function dateFormat(date, format) {
+    let adate = new Date(date);
+    format = format.replace(/yyyy/g, adate.getFullYear());
+    format = format.replace(/MM/g, ('0' + (adate.getMonth() + 1)).slice(-2));
+    format = format.replace(/dd/g, ('0' + adate.getDate()).slice(-2));
+    format = format.replace(/HH/g, ('0' + adate.getHours()).slice(-2));
+    format = format.replace(/mm/g, ('0' + adate.getMinutes()).slice(-2));
+    format = format.replace(/ss/g, ('0' + adate.getSeconds()).slice(-2));
+    format = format.replace(/SSS/g, ('00' + adate.getMilliseconds()).slice(-3));
     return format;
+}
+
+function date2Str (date, timeframe) {
+    let [value, unit, minutes] = timeframe;
+    var format1 = null;
+    var format2 = null;
+    if (unit == DAY) {
+        format1 = "MM-dd";
+        format2 = "yyyy";
+    } else if (unit == HOUR) {
+        format1 = "MM-dd HH";
+        format2 = "yyyy"
+    } else if (unit == MINUTE) {
+        format1 = 'HH:mm';
+        format2 = "yyyy-MM-dd"
+    }
+
+    let str1 = dateFormat(date, format1);
+    let str2 = dateFormat(date, format2);
+    return [str1, str2];
 }
 
 function round(value, order) {
@@ -232,18 +253,26 @@ function niceTimeRange(iMin, iMax, time, timeframe, divide) {
     }
     var array = [];
     var t = tbegin.getTime();
-    for (var i = 0; i < divide * 4; i++) {
+    for (var i = 0; i < division + 1; i++) {
         t += interval;
         let t0 = new Date(t);
-        if (t > time[time.length - 1].getTime()) {
+        if (t >= time[time.length - 1].getTime()) {
+            array.push([array[array.length - 1][0] + delta / value, null])
             break;
         }
         for (var j = 0; j < time.length; j++) {
-            if (time[j].getTime() == t) {
+            if (t == time[j].getTime()) {
+                if (i == 0) {
+                    let ibefore = j - parseInt(delta / value);
+                    if (ibefore >= iMin) {
+                        array.push([ibefore, new Date(t - interval)]);
+                    }
+                }
                 array.push([j, t0]);
             }
         }
     }
+
     return array;
 }
 
@@ -569,19 +598,24 @@ class Axis {
                 context.textBaseline = "top";
                 line(context, [value, this.level[0]], [value, this.level[1]])
                 context.globalAlpha = 1.0;
-                var s;
+                var s = [null, null];
                 if (this.scale.type == "linear") {
-                    s = number2Str(v);
+                    s = [number2Str(v), ""];
                 } else if (this.scale.type == "bartime") {
                     if (v[1]) {
-                        s = date2Str(v[1], "HH:mm");
+                        s = date2Str(v[1], this.timeframe);
                     } else {
                         s = "";
                     }
                 } else if (this.scale.type == "time") {
                     s = date2Str(new Date(v), "HH:mm");
                 }
-                context.fillText(s, value, this.level[0] + labelMargin);
+                if (s[0]) {
+                    context.fillText(s[0], value, this.level[0] + labelMargin);
+                }
+                if (s[1]) {
+                    context.fillText(s[1], value, this.level[0] + labelMargin + 15);
+                }
                 context.globalAlpha = 0.3;
             } else {
                 context.textAlign = "right";
@@ -697,7 +731,7 @@ class Graph {
         dispx = upper - 150;
         this.context.fillStyle = "black";
         this.context.font = "11px Arial";
-        this.context.fillText("Time: " + date2Str(candle.time, "yyyy/MM/dd HH:mm"), dispx, 45);
+        this.context.fillText("Time: " + dateFormat(candle.time, "yyyy/MM/dd HH:mm"), dispx, 45);
         this.context.fillText("Open: " + String(round(candle.open, 5)), dispx, 60);
         this.context.fillText("Close: " + String(round(candle.close, 5)), dispx + 80, 60);
         this.context.fillText("High: " + String(round(candle.high, 5)), dispx, 75);
@@ -977,8 +1011,8 @@ var chart1, chart2;
 function load() {
     let size = {size: {width: 800, height: 600}, margin: {top:80, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
-    let tohlc = dataSource("jp225");
-    chart1 = new Chart(document.getElementById("canvas1"), size, "D1");
+    let tohlc = dataSource("audjpy");
+    chart1 = new Chart(document.getElementById("canvas1"), size, "M1");
     chart1.setBarNumber(barNumber);
     chart1.load(tohlc);
     //chart2 = new Chart(document.getElementById("canvas2"), size);
