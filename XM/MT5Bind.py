@@ -207,10 +207,12 @@ class MT5Bind:
     def scrapeWithDic(self, timeframe, size=99999):
         d = mt5.copy_rates_from_pos(self.stock, setting.timeframeConstant(timeframe) , 0, size) 
         data = self.convert2Array(d)
-        dic = self.toDic(data)
+        array = self.toDicArray(data)
+        dic = {}
         dic['name'] = self.stock
         dic['timeframe'] = timeframe
         dic['length'] = len(data)
+        dic['data'] = array
         return dic
     
     def scrapeRange(self, timeframe, begin_jst, end_jst):
@@ -256,7 +258,18 @@ class MT5Bind:
                 values.append(v[1:5])
         return TimeSeries(time, values, names=data_type)
 
-    def toDic(self, data, data_type=OHLC):
+    def toDicArray(self, data, data_type=OHLC):
+        array = []
+        for v in data:
+            dic = {}
+            dic['time'] = time2str(v[0])
+            for i in range(len(data_type)):
+                name = data_type[i]
+                dic[name] = v[i + 1]
+            array.append(dic)
+        return array
+
+    def toDi2(self, data, data_type=OHLC):
         time = []
         dic = {}
         for v in data:

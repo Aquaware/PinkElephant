@@ -126,7 +126,7 @@ function date2Str (date, timeframe) {
         format2 = "yyyy"
     } else if (unit == MINUTE) {
         format1 = 'HH:mm';
-        format2 = "yyyy-MM-dd"
+        format2 = "MM-dd"
     }
 
     let str1 = dateFormat(date, format1);
@@ -457,8 +457,8 @@ class Candle  {
         if (this.open < this.close) {
             upper = yScale.pos(this.close);
             lower = yScale.pos(this.open);
-            bodyColor = "green";
-            lineColor = "lime"
+            bodyColor = "#007744";
+            lineColor = "green"
         } else {
             upper = yScale.pos(this.open);
             lower = yScale.pos(this.close);
@@ -740,7 +740,7 @@ class Graph {
 }
 
 class Chart {
-    constructor(canvas, size, timeframe) {
+    constructor(canvas, size) {
         this.canvas = canvas;
         this.width = size.size.width;
         this.height = size.size.height;
@@ -749,7 +749,7 @@ class Chart {
         canvas.width = size.size.width;
         canvas.height = size.size.height;
         this.graphHeights = size.heights;
-        this.timeframe = timeframe;
+        this.timeframe = null;
         this.showLength = 30;
         this.tohlc = null;
         this.graph = null;
@@ -763,9 +763,11 @@ class Chart {
         this.update()
     }
 
-    load(tohlc) {
+    load(name, tohlc, timeframe) {
+        this.name = name;
         this.tohlc = tohlc;
-        this.update();
+        this.timeframe = timeframe;
+        this.render();
     }
 
     update() {
@@ -831,7 +833,7 @@ class Chart {
         }
         //let time = keyListOfJson(data, "time");
         this.candles = candles;
-        this.drawTitle("Audjpy", {});
+        this.drawTitle(this.name + ' [' + this.timeframe + ']', {});
         //this.drawXtitle("Time", {});
 
         this.graph.drawAxis();
@@ -860,12 +862,15 @@ class Chart {
     }
 
     drawTitle(title, prop) {
-        this.context.fillStyle = "black";
-        this.context.font = "14px Arial";
-        this.context.textAlign = "center";
+        this.context.font = "20px Arial";
+        this.context.textAlign = "left";
         this.context.textBaseline = "top";
+        this.context.fillStyle = "#444444";
+        this.context.fillRect(this.margin.left, this.margin.top, 160, 30);
+        this.context.fillStyle = "#ffffff";
+        this.context.fillText(title, this.margin.left + 5, this.margin.top + 5);
         this.context.globalAlpha = 1.0;
-        this.context.fillText(title, this.canvas.width / 2, 20);
+        
     }
 
     drawXtitle(title, prop) {
@@ -1007,21 +1012,54 @@ function httpValues(ids) {
     return out;
 }
 
-var chart1, chart2;
-function load() {
-    let size = {size: {width: 800, height: 600}, margin: {top:80, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
-    let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
-    let tohlc = dataSource("audjpy");
-    chart1 = new Chart(document.getElementById("canvas1"), size, "M1");
-    chart1.setBarNumber(barNumber);
-    chart1.load(tohlc);
-    //chart2 = new Chart(document.getElementById("canvas2"), size);
-    //chart2.setBarNumber(barNumber);
-    //chart2.load(tohlc);
+var chart1 = null;
+var shouldLoop = true;
+function load(json) {
+    let size = {size: {width: 800, height: 600}, margin: {top:50, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
+    if (!chart1) {
+        chart1 = new Chart(document.getElementById("canvas1"), size);
+    }
+    let [name, timeframe, length, tohlc] = parse(json);
+    chart1.setBarNumber(50);
+    chart1.load(name, tohlc, timeframe);
+    if (shouldLoop) {
+        setTimeout(function(){begin();}, 50);
+    }
 }
 
-function update() {
+
+function updateBarNumber() {
     let [barNumber, priceRange] = httpValues(["barnumber", "pricerange"]);
     chart1.setBarNumber(barNumber);
     chart2.setBarNumber(barNumber);
+
 }
+
+function begin() {
+    let [market, timeframe] = httpValues(["market", "timeframe"]); 
+    market = 'US30Cash';
+    timeframe = 'M5';
+    post('/xmdata', {"market": market, "timeframe": timeframe});
+}
+
+function pause() {
+    shouldLoop = false;
+}
+
+function post(action, data) {
+    var form = document.createElement("form");
+    form.setAttribute("action", action);
+    form.setAttribute("method", "post");
+    form.style.display = "none";
+    document.body.appendChild(form);
+    if (data !== undefined) {
+        for (var paramName in data) {
+            var input = document.createElement('input');
+            input.setAttribute('type', 'hidden');
+            input.setAttribute('name', paramName);
+            input.setAttribute('value', data[paramName]);
+            form.appendChild(input);
+        }
+    }
+    form.submit();
+   }
