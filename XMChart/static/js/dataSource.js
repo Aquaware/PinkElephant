@@ -7,7 +7,7 @@ function replaceAll(str, beforeStr, afterStr){
 function dataConvert(dic) {
     format = d3.time.format("%Y/%M/%d %H:%M:%S");
     let data = dic.map(function(d){
-    return  {time: format.parse(d.time),
+    return  {time: new Date(d.time),
             open: parseFloat(d.open),
             high: parseFloat(d.high),
             low: parseFloat(d.low),

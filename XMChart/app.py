@@ -25,7 +25,7 @@ def xmdata():
     market = request.form.get('market')
     #timeframe = "M5"
     timeframe = request.form.get('timeframe')
-    dic = downloadData(market, timeframe, 100)
+    dic = downloadData(market, timeframe, 150)
     return render_template('index.html', response=json.dumps(dic))
 
 def downloadData(market, timeframe, length):
@@ -35,4 +35,4 @@ def downloadData(market, timeframe, length):
     return dic
 
 if __name__ == '__main__':
-    app.run(port=9600, debug=True)
+    app.run(port=5500, debug=True)

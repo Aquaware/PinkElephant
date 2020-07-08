@@ -573,7 +573,7 @@ class Axis {
 
         // grid
         context.lineWidth = 0.2;
-        context.font = 'bold 12px Times Roman';
+        context.font = 'bold 10px Times Roman';
         context.strokeStyle = "grey";
         var range;
         if (this.scale.type == "linear") {
@@ -818,7 +818,7 @@ class Chart {
             return;
         }
         //this.currentIndex = this.showLength - data.length;
-        this.graph = this.createGraph(data, minmax(data));
+        this.graph = this.createGraph(data, minmax(data, 100));
         this.context.clearRect(0, 0, this.width, this.height);
         let candles = []
         let prop = {"color": "green", "opacity": 0.5};
@@ -978,11 +978,13 @@ function minmaxDate(d) {
     return [mindate, maxdate];
 }
 
-function minmax(jsonArray) {
+function minmax(jsonArray, margin) {
     let lows = keyListOfJson(jsonArray, "low");
     let min = Math.min.apply(null, lows);
+    min -= margin;
     let highs = keyListOfJson(jsonArray, "high");
     let max = Math.max.apply(null, highs);
+    max += margin;
     return [min, max];
 }
 
@@ -1015,12 +1017,12 @@ function httpValues(ids) {
 var chart1 = null;
 var shouldLoop = true;
 function load(json) {
-    let size = {size: {width: 800, height: 600}, margin: {top:50, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
+    let size = {size: {width: 1200, height: 600}, margin: {top:50, bottom: 100, left: 60, right: 60}, heights:[0.8, 0.4]};
     if (!chart1) {
         chart1 = new Chart(document.getElementById("canvas1"), size);
     }
     let [name, timeframe, length, tohlc] = parse(json);
-    chart1.setBarNumber(50);
+    chart1.setBarNumber(100);
     chart1.load(name, tohlc, timeframe);
     if (shouldLoop) {
         setTimeout(function(){begin();}, 50);
