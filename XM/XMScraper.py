@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pandas as pd
 from MT5Bind import MT5Bind
 from XMDb import XMDb, ManageTable, PriceTable
 from MT5Bind import nowJst, deltaMinute
@@ -116,7 +117,7 @@ def build(stocks):
 
 
 def update():
-    for stock in setting.indexStock() + setting.fx():
+    for stock in setting.indexStock() + setting.fx() + setting.comodity():
         db = XMScraper(stock)
         timeframes = setting.timeframeSymbols()
         for timeframe in timeframes:
@@ -140,11 +141,23 @@ def test1():
     data = server.scrapeRange('M5', t0, t1)
     if len(data) > 0:
         print(data)
+
+def save(stock, timeframe):
+    server = MT5Bind(stock)
+    dic = server.scrapeWithDic(timeframe)
+    values = dic['data']
+    d = []
+    for value in values:
+        d.append([value['time'], value['open'], value['high'], value['low'], value['close']])
+    df = pd.DataFrame(data=d, columns=['Time', 'Open', 'High', 'Low', 'Close'])
+    df.to_csv('./' + stock + '_' + timeframe + '.csv', index=False)
+    
     
 if __name__ == '__main__':
-    #build(setting.fx())
-    update()
+    #build(setting.fx() + setting.indexStock() + setting.comodity())
+    #update()
     #test()
+    save('US30Cash', 'D1')
 
 
         
