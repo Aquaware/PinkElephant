@@ -62,27 +62,23 @@ def getPrice():
         m = int2str(t.month, 2)
         contractCode.append(y + m)
         t += DeltaMonth(1)
+
+    
+    contractCode.append('202075') # 11/20
+    contractCode.append('202076') # 11/27
+    contractCode.append('202077') # 12/6
     print(contractCode)
-        
-    #contractCode.append('202057') # 6/5
-    #contractCode.append('202058') # 6/19
-    #contractCode.append('202059') # 6/26
     
     #get225fPrices(contractCode[0])
-<<<<<<< HEAD
-    for i in range(len(contractCode)):
-        code = contractCode[i]
-=======
-    #get225fPrices(contractCode[0])
     for code in contractCode:
->>>>>>> 336d0f3489e32782dd6f8f8f74c8b273b8b2fb27
         try:
             chrome1.selectListByName('targetDeliveryMonth', code)
             chrome1.executeJS("changeDeliveryMonth('0')", [])
             getOptionPrices(code)
         except:
             continue
-        
+    return
+   
 def close():
     chrome1.close()
     #chrome2.close()
@@ -101,13 +97,13 @@ def login():
     #chrome1.linkByText('先物注文')
     return
 
-    chrome2.connect(url)
-    chrome2.inputElement('j_username', userid)
-    chrome2.inputElement('j_password', password)
-    chrome2.clickButtonByName('LoginForm')
-    chrome2.linkByClassName('js-fuop')
-    chrome2.linkByText('オプション注文')
-    pass
+    #chrome2.connect(url)
+    #chrome2.inputElement('j_username', userid)
+    #chrome2.inputElement('j_password', password)
+    #chrome2.clickButtonByName('LoginForm')
+    #chrome2.linkByClassName('js-fuop')
+    #chrome2.linkByText('オプション注文')
+    #pass
 
 def GMONavigator():
     scrape()
