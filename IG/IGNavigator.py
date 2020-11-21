@@ -10,7 +10,7 @@ from selenium.common.exceptions import NoSuchElementException
 import datetime
 import time as pyTime
 import Scheduler
-import consts
+import const
 
 
 
@@ -165,9 +165,9 @@ class IGNavigator:
         pass
 
     def login(self, menu):
-        self.chrome.connect(consts.URL)
-        self.chrome.inputElementById('account_id', consts.USERID)
-        self.chrome.inputElementByName('nonEncryptedPassword', consts.PW)
+        self.chrome.connect(const.URL)
+        self.chrome.inputElementById('account_id', const.USERID)
+        self.chrome.inputElementByName('nonEncryptedPassword', const.PW)
         self.chrome.clickButtonById('loginbutton')
         pyTime.sleep(20)
         self.chrome.linksByClassName('segmented-button-label', menu)
@@ -352,10 +352,10 @@ if __name__ == '__main__':
     IG.login(menu_demo_index)    
     pyTime.sleep(5)
     IG.start(updatePrices, updatePositions)
-    IG.test2()
+    IG.test()
         
     # closing if positions are hold
-    rule1 = TrailingRule(updateStop, 12.0, 0.5, 6.0, 3.0)
-    rule2 = TrailingRule(updateStop, 12.0, 0.0, 7.0, 3.0)
-    IG.startTrailingStop(rule2)
+    #rule1 = TrailingRule(updateStop, 12.0, 0.5, 6.0, 3.0)
+    #rule2 = TrailingRule(updateStop, 12.0, 0.0, 7.0, 3.0)
+    #IG.startTrailingStop(rule2)
 

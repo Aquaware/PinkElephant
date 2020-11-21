@@ -3,6 +3,8 @@ import sys
 sys.path.append("../common")
 sys.path.append("../private")
 
+import pandas as pd
+
 import pytz
 from datetime import datetime
 from Postgres import Postgres, Structure
@@ -27,9 +29,15 @@ IV = 'IV'
 TBEGIN = 'tbegin'
 TEND = 'tend'
 
+SPREAD = 'spread'
+BID = 'bid'
+ASK = 'ask'
+MID = 'mid'
+
+
 TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 MANAGE_TABLE_NAME = 'manage'
-DB_NAME = 'Nikkei225Option'
+DB_NAME = 'NK225FOption'
 
 def ManageTable(name=MANAGE_TABLE_NAME):
     struct = { CONTRACT_MONTH:'varchar(10)', CONTRACT_PRICE: 'varchar(10)', KIND:'varchar(10)', TBEGIN:'timestamp', TEND:'timestamp'}
@@ -39,6 +47,12 @@ def ManageTable(name=MANAGE_TABLE_NAME):
 def PriceTable(contract_month):
     struct = {TIME: 'timestamp', CONTRACT_PRICE: 'varchar(10)', KIND: 'varchar(10)', PRICE:'real', VOLUME: 'int', DELTA:'real', GAMMA:'real', VEGA:'real', THETA:'real', IV:'real'}
     table = Structure(contract_month, [TIME, CONTRACT_PRICE, KIND], struct)
+    return table
+
+def TickTable(stock, year, month):
+    name = stock + '_' + str(year).zfill(4) + '_' + str(month).zfill(2)
+    struct = {TIME: 'timestamp', BID:'real', ASK:'real', MID:'real', VOLUME:'real'}
+    table = Structure(name, [TIME], struct)
     return table
 
 def tableName(contract_month):
@@ -165,23 +179,20 @@ def build():
         db.create(table)
         
 
-def test1():
-    t0 = datetime(2020, 5, 1, 12, 10, 0)
-    t1 = datetime(2020, 5, 1, 12, 30, 0)
-    p0 = OptionPrice(t0, '202005', 18000, 'C', 30.1, 7)
-    p1 = OptionPrice(t1, '202005', 17000, 'P', 10.1, 10)
-    p = [p0, p1]
+def importFromCsv(code, filepath):
+    df = pd.read_csv(filepath)
     db = OptionDb()
-    db.updatePrice(p)
+    out = []
+    for i in range(len(df)):
+        item = df.iloc[i, :]
+        t = datetime.strptime(item['time'], '%Y-%m-%d %H:%M:%S')
+        p = OptionPrice(t, code, item['contract_price'], item['kind'] , item['price'], item['volume'], item['delta'], item['gamma'], item['iv'], item['theta'], item['vega'])
+        out.append(p)    
+    db.updatePrices(out)
     
-def test2():
-    t0 = datetime(2020, 5, 1, 12, 10, 0)
-    t1 = datetime(2020, 5, 1, 12, 40, 0)
-    p0 = OptionPrice(t0, '202006', 18000, 'C', 32.1, 7)
-    p1 = OptionPrice(t1, '202006', 17000, 'P', 10.5, 10)
-    p = [p0, p1]
-    db = OptionDb()
-    db.updatePrice(p)
+    print('Data imported  ', len(out) )
+    
     
 if __name__ == '__main__':
-    build()
+    #build()
+    importFromCsv('202012', 'C://Users/user/OneDrive/data/option/option_202012.csv')
